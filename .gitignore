@@ -1,3 +1,5 @@
 plots/*
 *.DS_Store
 *.RHistory
+outputs/*
+outputs/outputRdengue_14_DENV1_ELISA_FALSE3.RData

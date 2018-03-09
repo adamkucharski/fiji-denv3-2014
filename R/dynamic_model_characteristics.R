@@ -8,8 +8,8 @@ country.name="dengue_14"
 epi.name="DENV"
 
 # 2014 timeseries - split by week of chnge
-timeser14_Sus <- read.csv(paste("data/Central_suspected.csv",sep=""), stringsAsFactors = F) # Load DLI dengue data
-timeser14_All <- read.csv(paste("data/Central_positive.csv",sep=""), stringsAsFactors = F); timeser14_All$date = as.Date(timeser14_All$date) # Load DLI dengue data
+timeser14_Sus <- read.csv(paste("data/Central_suspected.csv",sep=""), stringsAsFactors = F); timeser14_Sus$date = as.Date(timeser14_Sus$date)  # Load DLI dengue data
+timeser14_All <- read.csv(paste("data/Central_lab_tested.csv",sep=""), stringsAsFactors = F); timeser14_All$date = as.Date(timeser14_All$date) # Load Lab tested cases
 swap.date = as.Date("2014-03-08"); #Pick date of reporting change
 cutt.date = as.Date("2014-08-01") # Pick max date to fit to - if smaller than swap.date, just fit case data  as.Date("2014-03-10")
 start.date = as.Date("2013-11-04")
@@ -21,14 +21,19 @@ control.start = as.Date("2014-03-08"); control.end = as.Date("2014-03-22"); seas
 control.shift = as.numeric((control.start-start.date)/365); control.range = as.numeric(control.end - control.start + 14)/365 # Parameters for control measure range
 season.shift = as.numeric((season.peak-start.date)/(2*pi*365))
 
-timeser14 = timeser14_All#[timeser14_All$date<swap.date,]
-timeser14[timeser14$date>swap.date,] = timeser14_Sus[timeser14_Sus$date>swap.date,]
-timeser14 = timeser14[timeser14$date < cutt.date,] # DEFINE PERIOD OF FITTING
-weather.data <- read.csv(paste("data/data_Fiji_climate.csv",sep=""), stringsAsFactors = F) # Load DLI dengue data
+# Set up timeseries
+
+#timeser14 = timeser14_All
+#timeser14[timeser14$date>swap.date,] = timeser14_Sus[timeser14_Sus$date>swap.date,]
+timeser14_All = timeser14_All[timeser14_All$date < cutt.date,] 
+timeser14_Sus = timeser14_Sus[timeser14_Sus$date < cutt.date,] 
+timeser14_Sus$Central = timeser14_Sus$Central - timeser14_All$Central
 
 # Set up weather fluctuation prior
+weather.data <- read.csv(paste("data/data_Fiji_climate.csv",sep=""), stringsAsFactors = F) # Load climate data
+
 temp.R0.data <- read.csv(paste("data/outputTemp_R0.csv",sep=""), stringsAsFactors = F) %>% data.frame() # Load relative R0 from Mordecai
-weather2014 <- weather.data[weather.data$Date >= as.Date("2013-11-01") &weather.data$Date<= as.Date("2014-11-01"),]
+weather2014 <- weather.data[weather.data$Date >= as.Date("2013-11-01") &weather.data$Date<= as.Date("2014-11-01"),] # select relevant dates
 weather2014.relative.R0 <- c( max(temp.R0.data[min(weather2014$Av_temp)>=temp.R0.data$aegy.temps.DTR8,"R0.rel"]), temp.R0.data[max(weather2014$Av_temp)<=temp.R0.data$aegy.temps.DTR8,"R0.rel"][1] )
 rel.temp <-  weather2014.relative.R0[1]/weather2014.relative.R0[2]
 

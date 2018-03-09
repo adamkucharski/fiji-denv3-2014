@@ -607,6 +607,9 @@ plot_surveillance_data <- function(){
   
   # PLOT DLI
   
+  # Add non-confirmed
+  #time.series[,div.names] =   time.series[,div.names] + time.seriesD[,div.names] -time.seriesPOS[,div.names]
+  
   plot(time.series$date,rowSums(time.series[,div.names]),col="white",type="l",lwd=2,xlim=c(minT,maxT),xaxs="i",yaxs="i",ylim=c(0,1800),xlab="",ylab="DLI cases")
   
   for(ii in 1:4){
@@ -638,6 +641,21 @@ plot_surveillance_data <- function(){
   
   dev.copy(pdf,paste("plots/Figure_S1_timeseries_dengue_Geographic.pdf",sep=""),width=7,height=5)
   dev.off()
+  
+  # - - - - - - - - 
+  # Plot ratio of reporting
+  
+  par(mfrow=c(1,1),mar=c(2,3,1,3),mgp=c(2,0.7,0))
+  
+  y.vals = time.seriesD[,div.names[1]] #time.seriesPOS[,div.names[1]]
+  y.vals2 = time.series[,div.names[1]] #+ time.series[,div.names[1]] - y.vals
+  
+  plot(time.seriesD$date,y.vals/(y.vals+y.vals2),xlim=c(as.Date("2013-11-01"),as.Date("2014-07-01")),ylim=c(0,1),pch=19,ylab="confirmed cases/all suspected cases")
+  lines(time.seriesD$date,y.vals/(y.vals+y.vals2),xlim=c(as.Date("2013-11-01"),as.Date("2014-08-01")),ylim=c(0,1),pch=19)
+  
+  dev.copy(pdf,paste("plots/Figure_S1_timeseries_dengue_Geographic.pdf",sep=""),width=7,height=5)
+  dev.off()
+  
   
 }
 

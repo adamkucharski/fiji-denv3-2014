@@ -1,8 +1,8 @@
 # Load data non-zero weekly reports
 # Github version
 
-timeser = timeser14
-
+timeser = timeser14_All
+  
 colID=(names(timeser)==locationtab[iiH])
 
 endwk=length(timeser[,1])
@@ -35,3 +35,10 @@ time.vals = c(time.vals,seq(max(time.vals)+7,max(time.vals)+7*add.null.dates,7))
 rR.vals = 1 # Set reporting to one
 rep.drop.date = sum(date_list<=swap.date) #Set up date of drop
 
+y.vals2 = timeser14_Sus[match(date_list,as.Date(timeser14_Sus$date)),"Central"]
+
+# calculate proportion reported from each source
+y.vals.prop = y.vals/(y.vals+y.vals2)
+y.vals.prop[is.na(y.vals.prop)] = 1
+
+y.vals.prop = c(y.vals.prop,1+0*seq(max(time.vals)+7,max(time.vals)+7*add.null.dates,7)) # Add extra onto end to match

@@ -12,9 +12,11 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
 
   source("R/dynamic_model_characteristics.R",local=F)
   
-  multichain <- c(1:4) # run in parallel
+  #multichain <- c(1:4) # run in parallel
   
-  #foreach(iiM=multichain) %dopar% {  # Loop over regions with parallel MCMC chains
+  multichain=4
+  
+  #foreach(iiM=multichain) %dopar% {  # Loop over scenarios with parallel MCMC chains
   for(iiM in multichain){
     # - - - - - - - - - - - 
     # Initialise ICs 
@@ -74,7 +76,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
       source("R/load_timeseries_data.R",local=TRUE)
       repTN=rR.vals/totalSS[iiH]
       
-      time.store[[iiH]]=list(t_store = time.vals,y_store = y.vals)
+      time.store[[iiH]]=list(t_store = time.vals,y_store = y.vals,y_store2 = y.vals2, y.vals.prop)
       
       c1=(names(thetaR_IC)==locationtab[iiH])
       
@@ -129,7 +131,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
     # - - - - - - - - - - -
     
     # Turn on/off 2014 control and seasonality
-    # 1: SIR model cases  2: SIR model serology and cases  3: SIR + climate  4: SIR + control   5: SIR + climate + control
+    # 1: SIR model cases  2: SIR model serology and cases  3: SIR + climate  4: SIR + climate + control
     thetaAll[1,"beta_c_constrain"]=1
     #if(use.ELISA.data==T){thetaAll[1,"beta"]=1.3*thetaAll[1,"beta"]} # Adjust for higher immunity in ELISA data
     if(iiM==1){ thetaAll[1,"beta_c_mask"]=0 ; thetaAll[1,"beta_v_mask"]=0 ; thetaAll[1,"sero_lik1"] = 0; thetaAll[1,"sero_lik2"] = 0; thetaAll[1,"beta"]=0.2; theta[["beta_v"]]=10 }
@@ -161,9 +163,9 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
     if(length(multichain)==1){
       par(mfrow=c(1,1),mar=c(4,4,1,1),mgp=c(2,0.7,0))
       repTN=1
-      iiH=1; source("load_timeseries_data.R",local=TRUE)
+      iiH=1; source("R/load_timeseries_data.R",local=TRUE)
       time.valsSim=time.vals
-      Simulate_model2(5, dt, c(theta,thetaAll[iiH,]), theta_initAll[iiH,], y.vals,time.valsSim,repTN,date_list,plotA=TRUE,locationI=locationtab[iiH])
+      Simulate_model2(5, dt, c(theta,thetaAll[iiH,]), theta_initAll[iiH,], y.vals,y.vals2, y.vals.prop,time.valsSim,repTN,date_list,plotA=TRUE,locationI=locationtab[iiH])
       
     }
     
@@ -216,7 +218,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
       
       # Resample global theta
       if(m>1){
-        output_theta = SampleTheta(thetatab[m,],theta_initAlltab[1,1,],m,cov_matrix_theta,cov_matrix_theta_init,singleI=NULL) #sample nearby global parameter space
+        output_theta = SampleTheta(thetatab[m,],theta_initAlltab[1,1,],m,cov_matrix_theta,cov_matrix_theta_init,singleI=NULL,pmask) #sample nearby global parameter space
         theta_star=output_theta$thetaS
       }else{
         theta_star=thetatab[m,]
@@ -238,17 +240,18 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
         y.vals = time.store[[iiH]]$y_store
         repTN=1
         
+        # Resample specific theta - note this includes masked variables
         if(m==1){ # Don't resample on 1st step
-          output_H = SampleTheta(thetaAlltab[m,iiH,],theta_initAlltab[m,iiH,],m,0*cov_matrix_thetaA,0*cov_matrix_theta_init,singleI=kk) #sample parameter space
+          output_H = SampleTheta(thetaAlltab[m,iiH,],theta_initAlltab[m,iiH,],m,0*cov_matrix_thetaA,0*cov_matrix_theta_init,singleI=kk,pmask) #sample parameter space
         }else{
-          output_H = SampleTheta(thetaAlltab[m,iiH,],theta_initAlltab[m,iiH,],m,cov_matrix_thetaA,cov_matrix_theta_init,singleI=kk) #sample parameter space
+          output_H = SampleTheta(thetaAlltab[m,iiH,],theta_initAlltab[m,iiH,],m,cov_matrix_thetaA,cov_matrix_theta_init,singleI=kk,pmask) #sample parameter space
         } 
         
         thetaA_star=output_H$thetaS
         theta_init_star=output_H$theta_initS
         
         # Run model simulation
-        output1= Deterministic_modelR(1, dt, c(theta_star,thetaA_star), theta_init_star, y.vals,time.vals,repTN,locationI=locationtab[iiH])
+        output1= Deterministic_modelR(1, dt, c(theta_star,thetaA_star), theta_init_star, y.vals,y.vals2, y.vals.prop,time.vals,repTN,locationI=locationtab[iiH])
         sim_marg_lik_star=sim_marg_lik_star+output1$lik
         
         #Store vales
@@ -266,8 +269,8 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
       } # end loop over regions
       
       # child/adult case ratio - NOT USED IN LIKELIHOOD
-      c_case_ratioStar = sum(cTraceCStar[2,],na.rm = T) /sum(cTraceStar[2,],na.rm = T)
-      c_case_ratioTab = if(m>1){sum(c_trace_tabC[m,2,],na.rm = T) /sum(c_trace_tab[m,2,],na.rm = T)}else{c_case_ratioStar}
+      #c_case_ratioStar = sum(cTraceCStar[2,],na.rm = T) /sum(cTraceStar[2,],na.rm = T)
+      #c_case_ratioTab = if(m>1){sum(c_trace_tabC[m,2,],na.rm = T) /sum(c_trace_tab[m,2,],na.rm = T)}else{c_case_ratioStar}
       
       # Calculate probability function
       output_prob = ComputeProbability(sim_liktab[m],sim_marg_lik_star,thetatab[m,],theta_star,theta_initAlltab[m,,],theta_initAllstar,thetaAllstar,itertab,c_case_ratioStar,c_case_ratioTab) 

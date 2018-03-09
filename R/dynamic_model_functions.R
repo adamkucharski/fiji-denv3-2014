@@ -32,45 +32,64 @@ calculate_r0 <- function(th_in,sus_c=1,sm_c=1,b_vary=1){
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-ReportC<-function(ct, theta,repSS){
-  mu00=ct
-  mu01=sapply(mu00,function(x){max(x,0)})
+ReportC<-function(ct, theta,repSS,yprop){
   
-
-  if(cutt.date<=swap.date){
-  sapply(mu01,function(x){rnbinom(1, mu=theta[["repR"]]*x,size=1/theta[["repvol"]])})
-  }else{
-    c(sapply(mu01[1:(theta[["rep_drop"]])] ,function(x){rnbinom(1, mu=theta[["repR"]]*x,size=1/theta[["repvol"]])}),rep(-1,exclude.p-1),
-      sapply(mu01[(theta[["rep_drop"]]+exclude.p):length(mu01)] ,function(x){rnbinom(1, mu=theta[["repRA"]]*x,size=1/theta[["repvolA"]])})
-    )
-  }
+  #DEBUG:  ct = mu1; repSS = "susp"; yprop = y.vals.prop
+  
+  mu01=sapply(ct,function(x){max(x,0)})
+  
+  if(repSS=="lab"){ mu_output = sapply(yprop*mu01,function(x){rnbinom(1, mu=theta[["repR"]]*x,size=1/theta[["repvol"]] )}) }
+  if(repSS=="sus"){ mu_output = sapply((1-yprop)*mu01,function(x){rnbinom(1, mu=theta[["repRA"]]*x,size=1/theta[["repvolA"]] )}) }
+  
+  # if(cutt.date<=swap.date){
+  # sapply(mu01,function(x){rnbinom(1, mu=theta[["repR"]]*x,size=1/theta[["repvol"]])})
+  # }else{
+  #   c(sapply(mu01[1:(theta[["rep_drop"]])] ,function(x){rnbinom(1, mu=theta[["repR"]]*x,size=1/theta[["repvol"]])}),rep(-1,exclude.p-1),
+  #     sapply(mu01[(theta[["rep_drop"]]+exclude.p):length(mu01)] ,function(x){rnbinom(1, mu=theta[["repRA"]]*x,size=1/theta[["repvolA"]])})
+  #   )
+  # }
+  mu_output
 
 }
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-LikelihoodFunction<-function(y, c1, c2, theta,iiN,repSS=NULL){
+LikelihoodFunction<-function(y, c1, c2, theta,iiN,repSS=NULL,yprop){
+  
   muAll=sapply(c1,function(x){max(0,x)}) + sapply(c2,function(x){max(0,x)})
 
-  # Add together early and late fitting:
-  if(cutt.date<=swap.date){
-    sum( dnbinom(y, mu=theta[["repR"]]*muAll,size=1/theta[["repvol"]],log=T) )
-  }else{
-    sum( dnbinom(y[1:(theta[["rep_drop"]])], mu=theta[["repR"]]*muAll[1:(theta[["rep_drop"]])],size=1/theta[["repvol"]],log=T) ) + 
-    sum( dnbinom(y[(theta[["rep_drop"]]+exclude.p):length(y)], mu=theta[["repRA"]]*muAll[(theta[["rep_drop"]]+exclude.p):length(y)],size=1/theta[["repvolA"]],log=T) )
-    
-  }
+  # # Add together early and late fitting:
+  # if(cutt.date<=swap.date){
+  #   sum( dnbinom(y, mu=theta[["repR"]]*muAll,size=1/theta[["repvol"]],log=T) )
+  # }else{
+  #   sum( dnbinom(y[1:(theta[["rep_drop"]])], mu=theta[["repR"]]*muAll[1:(theta[["rep_drop"]])],size=1/theta[["repvol"]],log=T) ) + 
+  #   sum( dnbinom(y[(theta[["rep_drop"]]+exclude.p):length(y)], mu=theta[["repRA"]]*muAll[(theta[["rep_drop"]]+exclude.p):length(y)],size=1/theta[["repvolA"]],log=T) )
+  #   
+  # }
+  
+  if(repSS=="lab"){ lik_output = sum( dnbinom(y, mu=theta[["repR"]]*muAll*yprop,size=1/theta[["repvol"]],log=T) )}
+  if(repSS=="sus"){ lik_output = sum( dnbinom(y, mu=theta[["repRA"]]*muAll*yprop,size=1/theta[["repvolA"]],log=T) )}
+  
+  lik_output
 
 }
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 
-SampleTheta<-function(theta_in, theta_init_in,m,covartheta,covartheta_init,singleI=NULL){
+SampleTheta<-function(theta_in, theta_init_in,m,covartheta,covartheta_init,singleI=NULL,pmask){
+  
+  #DEBUG: theta_in = thetaAlltab[m,iiH,]; theta_init_in = theta_initAlltab[m,iiH,]; covartheta=0*cov_matrix_thetaA; covartheta_init = 0*cov_matrix_theta_init; singleI=kk
+  #DEBUG: theta_in = thetatab[m,]; theta_init_in = theta_initAlltab[m,iiH,]; covartheta=0*cov_matrix_thetaA; covartheta_init = 0*cov_matrix_theta_init; singleI=kk
   
   # sample new parameters from nearby: 
   mean_vector_theta = theta_in
-  mean_vector_theta0=mean_vector_theta
+
+  if(sum(names(mean_vector_theta)=="shift_date")>0 & !is.null(singleI)){
+    mean_vector_theta[["shift_date"]]=10 # To avoid errors
+  }
+  
+  mean_vector_theta0 = mean_vector_theta 
   theta_star = as.numeric(exp(rmvnorm(1,log(mean_vector_theta0), covartheta)))
   names(theta_star)=names(theta_in)
   
@@ -91,7 +110,11 @@ SampleTheta<-function(theta_in, theta_init_in,m,covartheta,covartheta_init,singl
     theta_star[["beta2"]]=min(theta_star[["beta2"]],2-theta_star[["beta2"]]) # Ensure beta is between zero and 1
     theta_star[["beta3"]]=min(theta_star[["beta3"]],2-theta_star[["beta3"]]) # Ensure beta is between zero and 1
   }
-
+  
+  if(!is.null(singleI)){
+    theta_star[pmask] = theta_in[pmask] # Replace masked values (some may be negative)
+  }
+  
   if(!is.null(singleI)){
     mean_vector_theta_init = theta_init_in
     
@@ -172,11 +195,16 @@ decline_f <- function(x,date0,theta){
 
 
 
-Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,time.vals,repTab,date_list,plotA=FALSE,simzetaA=NULL,fitplot=FALSE,locationI){
+Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,y.vals2, y.vals.prop,time.vals,repTab,date_list,plotA=FALSE,simzetaA=NULL,fitplot=FALSE,locationI){
 
-  output <- Deterministic_modelR(1,dt,theta, theta_init, y.vals,time.vals,repTab,locationI)
+  # DEBUG
+  # theta=c(theta,thetaAll[iiH,]);  theta_init=theta_initAll[iiH,]; repTab=repTN; locationI=locationtab[iiH] ; sero_lik=1; NN=5
+  
+  
+  output <- Deterministic_modelR(1,dt,theta, theta_init, y.vals,y.vals2, y.vals.prop, time.vals,repTab,locationI)
 
   if(plotA==T){
+    
     case_count=output$C_trace
     
     # Reporting model
@@ -184,10 +212,14 @@ Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,time.vals,repTab,
     #par(mfrow=c(2,1))
     par(mar = c(5,5,1,3),mfrow=c(2,1))
     mu1=case_count
-    plot(date_list,y.vals,ylim=c(0,1.2*max(y.vals,mu1*theta[["repR"]])),xlim=c(min(date_list),xmax))
+    plot(date_list,y.vals,ylim=c(0,1000),xlim=c(min(date_list),xmax),pch=19)
+    points(date_list,y.vals2,ylim=c(0,1000),xlim=c(min(date_list),xmax))
+    
     for(kk in 1:NN){
-      lines(min(date_list)+time.vals-min(time.vals),ReportC(mu1,theta,repTab),col=rgb(0,0,1,0.5))
-
+      lines(min(date_list)+time.vals-min(time.vals),ReportC(mu1,theta,repSS = "lab",yprop = y.vals.prop),col=rgb(0,0,1,0.5))
+      lines(min(date_list)+time.vals-min(time.vals),ReportC(mu1,theta,repSS = "sus",yprop = y.vals.prop),col=rgb(0,0.5,1,0.5))
+      #lines(min(date_list)+time.vals-min(time.vals),mu1*0.1,col=rgb(0,0,1,0.5))
+      
     }
 
     par(new=TRUE)
@@ -209,15 +241,15 @@ Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,time.vals,repTab,
     lines(min(date_list)+time.vals-7,output$S_traceC/theta[["npopA"]],ylim=c(0,1),xlim=c(min(date_list),xmax),type="l",col="blue")
     
     
-    dev.copy(pdf,paste("plotsD/Simulate0.pdf",sep=""),width=10,height=6)
+    dev.copy(pdf,paste("plots/Simulate0.pdf",sep=""),width=10,height=6)
     dev.off()
     
     
   }
   
   if(fitplot==T){
-    mu1=output$C_trace
-    list(report_traj=ReportC(mu1,theta,repTab))
+    #mu1=output$C_trace
+    #list(report_traj=ReportC(mu1,theta,repTab))
   }
 
   
@@ -301,7 +333,7 @@ simulate_deterministic <- function(theta, init.state, times) {
   return(traj)
 }
 
-Deterministic_modelR<-function(iiN,dt,theta, theta_init, y.vals,time.vals,repTN,locationI){
+Deterministic_modelR<-function(iiN,dt,theta, theta_init, y.vals, y.vals2, y.vals.prop, time.vals,repTN,locationI){
   
   sim.vals = seq(0,max(time.vals)-min(time.vals),7) + 7 # These values tell how to match with data points
 
@@ -336,12 +368,14 @@ Deterministic_modelR<-function(iiN,dt,theta, theta_init, y.vals,time.vals,repTN,
   liksero2 = (ifelse(locationI=="Central2014",dbinom(n_Luminex_C_D3[2], size=n_Luminex_C_D3[3], prob=seroPC_2, log = T),0) +
                ifelse(locationI=="Central2014",dbinom(n_Luminex_A_D3[2], size=n_Luminex_A_D3[3], prob=seroPA_2, log = T),0) )*theta[["sero_lik2"]]
 
-  likcases = LikelihoodFunction(y.vals,casecountC[1:length(y.vals)],casecountA[1:length(y.vals)], theta,1,repTN)
+  likcasesLab = LikelihoodFunction(y.vals,casecountC[1:length(y.vals)],casecountA[1:length(y.vals)], theta,1,repSS="lab",y.vals.prop[1:length(y.vals)])
+  likcasesDLI = LikelihoodFunction(y.vals2,casecountC[1:length(y.vals)],casecountA[1:length(y.vals)], theta,1,repSS="sus",y.vals.prop[1:length(y.vals)])
+  
   
   # Check if there is a second epidemic (i.e. at least one reported case). 60 is cutoff for 2015
-  likcases2015 = -1e10*((theta[["repR"]] * max(casecountC[60:length(casecountC)] + casecountA[60:length(casecountC)]) > 1) ) #& min(casecountC+casecountC)>1 ) # Condition on persistence
+  #likcases2015 = -1e10*((theta[["repR"]] * max(casecountC[60:length(casecountC)] + casecountA[60:length(casecountC)]) > 1) ) #& min(casecountC+casecountC)>1 ) # Condition on persistence
   
-  likelihood = likcases + likesero1 + liksero2 + theta[["no2015"]]*likcases2015
+  likelihood = likcasesLab + likcasesDLI + likesero1 + liksero2 #+ theta[["no2015"]]*likcases2015
   
   # Avoid infinity in MCMC sum over regions
   if(likelihood == -Inf | is.na(likelihood)){likelihood=-1e10}
