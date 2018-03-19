@@ -653,7 +653,7 @@ plot_surveillance_data <- function(){
   plot(time.seriesD$date,y.vals/(y.vals+y.vals2),xlim=c(as.Date("2013-11-01"),as.Date("2014-07-01")),ylim=c(0,1),pch=19,ylab="confirmed cases/all suspected cases")
   lines(time.seriesD$date,y.vals/(y.vals+y.vals2),xlim=c(as.Date("2013-11-01"),as.Date("2014-08-01")),ylim=c(0,1),pch=19)
   
-  dev.copy(pdf,paste("plots/Figure_S1_timeseries_dengue_Geographic.pdf",sep=""),width=7,height=5)
+  dev.copy(pdf,paste("plots/Figure_S1_timeseries_dengue_GeographicA.pdf",sep=""),width=7,height=5)
   dev.off()
   
   

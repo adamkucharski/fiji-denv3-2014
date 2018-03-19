@@ -10,8 +10,6 @@
 
 run_transmission_mcmc <- function(MCMC.runs = 10){
 
-  source("R/dynamic_model_characteristics.R",local=F)
-  
   #multichain <- c(1:4) # run in parallel
   
   multichain=4

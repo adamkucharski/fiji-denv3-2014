@@ -33,12 +33,16 @@ source("R/dynamic_model_mcmc.R")
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 use.ELISA.data = F # Fit to ELISA or MIA data
-exclude.p = 3 #  Subsequent weeks to skip after change from lab to DLI reporting (=2 implies skip 1 week) 
+exclude.p = 1 #  Subsequent weeks to skip after change from lab to DLI reporting (=2 implies skip 1 week) - DEPRECATED (BUT STILL USED)
+
+# Load relevant data
+source("R/dynamic_model_characteristics.R",local=F)
+
 
 # Fit using 4 model types:
 # 1: SIR model cases  2: SIR model serology and cases  3: SIR + climate  4: SIR + climate + control
 
-run_transmission_mcmc(MCMC.runs = 1e3) # set number of MCMC runs   
+run_transmission_mcmc(MCMC.runs = 3e3) # set number of MCMC runs   
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 

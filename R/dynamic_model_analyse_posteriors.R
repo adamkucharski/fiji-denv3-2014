@@ -311,11 +311,11 @@ model_comparison <- function( compareN = c(2:4) ){
 # - - - - - - - - - - - - - - - - - - - - - - - - 
 # Plot timeseries for DENV 3 
 
-plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F){
+plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F,DoubleFit=F){
   
   # 
   # Set up vectors
-  # p_pick=4; simM=FALSE; Fmask=FALSE
+  # p_pick=4; simM=FALSE; Fmask=FALSE; long_time = F; DoubleFit =F
   dataP=NULL
   simM=F
   
@@ -340,17 +340,19 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   repTab=rR.vals/totalSS[iiH]
   tMax <- length(time.vals) #length(y.vals)
   
-  btsp=1000
+  btsp=100
   
   cvector=matrix(NA,nrow=btsp,ncol=tMax)
+  cvector_lab=matrix(NA,nrow=btsp,ncol=tMax)
   cvectorALL=matrix(NA,nrow=btsp,ncol=tMax)
   svectorC=matrix(NA,nrow=btsp,ncol=tMax)
   svectorA=matrix(NA,nrow=btsp,ncol=tMax)
   
   for(ii in 1:btsp){
     pick=sample(picks,1)
-    cvector[ii,]= ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="sus",y.vals.prop) + ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="lab",y.vals.prop) # Edit for both datasets
-    cvectorALL[ii,]=c_trace_tab[pick,1:tMax]
+    cvector[ii,]= ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="sus",y.vals.prop) #+ ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="lab",y.vals.prop) # Edit for both datasets
+    cvector_lab[ii,]= ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="lab",y.vals.prop) #+ ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="lab",y.vals.prop) # Edit for both datasets
+    cvectorALL[ii,]= ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="sus",y.vals.prop) + ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="lab",y.vals.prop)
     svectorC[ii,]= r_trace_tabC[pick,1:tMax]/thetatab[pick,]$npopC # Proportion immune C
     svectorA[ii,]= r_trace_tabA[pick,1:tMax]/thetatab[pick,]$npopA # Proportion immune A
   }
@@ -360,8 +362,18 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   ciP2=apply(cvector,2,function(x){quantile(x,0.975)})
   ciP150=apply(cvector,2,function(x){quantile(x,0.25)})
   ciP250=apply(cvector,2,function(x){quantile(x,0.75)})
-  # Remove missing fit points
 
+  medP_lab=apply(cvector_lab,2,function(x){median(x)})
+  ciP1_lab=apply(cvector_lab,2,function(x){quantile(x,0.025)})
+  ciP2_lab=apply(cvector_lab,2,function(x){quantile(x,0.975)})
+  
+  
+  medP_All=apply(cvectorALL,2,function(x){median(x)})
+  ciP1_All=apply(cvectorALL,2,function(x){quantile(x,0.025)})
+  ciP2_All=apply(cvectorALL,2,function(x){quantile(x,0.975)})
+  ciP150_All=apply(cvectorALL,2,function(x){quantile(x,0.25)})
+  ciP250_All=apply(cvectorALL,2,function(x){quantile(x,0.75)})
+  
   medP_RC=apply(svectorC,2,function(x){median(x)}); medP_RC=c(medP_RC,rep(tail(medP_RC,1),150)) # EXTEND IF NEEDED
   ciP1_RC=apply(svectorC,2,function(x){quantile(x,0.025)}); ciP1_RC=c(ciP1_RC,rep(tail(ciP1_RC,1),150)) # EXTEND IF NEEDED
   ciP2_RC=apply(svectorC,2,function(x){quantile(x,0.975)}); ciP2_RC=c(ciP2_RC,rep(tail(ciP2_RC,1),150)) # EXTEND IF NEEDED
@@ -398,19 +410,38 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   plot(date_list_all[xSelect2],medP[xSelect2],ylim=c(0,2000),xlab="",ylab=ifelse(iiH==1,"cases","confirmed cases"),pch=19,cex=1,col='white',yaxs="i",xlim=xRangeTimeS)
   
 
-  if(Fmask==FALSE){ # Show model outputs?
+  if(DoubleFit==TRUE){ # Show model outputs?
 
-    polygon(c(date_list_all[xSelect2DROP1],rev(date_list_all[xSelect2DROP1])),c(ciP150[xSelect2DROP1],rev(ciP250[xSelect2DROP1])),lty=0,col=rgb(0,0.3,1,0.3))
+    #polygon(c(date_list_all[xSelect2DROP1],rev(date_list_all[xSelect2DROP1])),c(ciP150[xSelect2DROP1],rev(ciP250[xSelect2DROP1])),lty=0,col=rgb(0,0.3,1,0.3))
     polygon(c(date_list_all[xSelect2DROP1],rev(date_list_all[xSelect2DROP1])),c(ciP1[xSelect2DROP1],rev(ciP2[xSelect2DROP1])),lty=0,col=rgb(0,0.3,1,0.2))
-    lines(date_list_all[xSelect2DROP1],medP[xSelect2DROP1],type="l",col=rgb(0,0.3,1),xaxt="n",yaxt="n",xlab="",ylab="")
+    lines(date_list_all[xSelect2DROP1],medP[xSelect2DROP1],type="l",col=rgb(0,0.3,1),lty=2,xaxt="n",yaxt="n",xlab="",ylab="")
     
     #polygon(c(date_list_all[xSelect2DROP2],rev(date_list_all[xSelect2DROP2])),c(ciP150[xSelect2DROP2],rev(ciP250[xSelect2DROP2])),lty=0,col=rgb(0,0.3,1,0.3))
-    #polygon(c(date_list_all[xSelect2DROP2],rev(date_list_all[xSelect2DROP2])),c(ciP1[xSelect2DROP2],rev(ciP2[xSelect2DROP2])),lty=0,col=rgb(0,0.3,1,0.2))
-    #lines(date_list_all[xSelect2DROP2],medP[xSelect2DROP2],type="l",col=rgb(0,0.3,1),xaxt="n",yaxt="n",xlab="",ylab="")
+    polygon(c(date_list_all[xSelect2DROP1],rev(date_list_all[xSelect2DROP1])),c(ciP1_lab[xSelect2DROP1],rev(ciP2_lab[xSelect2DROP1])),lty=0,col=rgb(0,0.3,1,0.2))
+    lines(date_list_all[xSelect2DROP1],medP_lab[xSelect2DROP1],type="l",col=rgb(0,0.3,1),xaxt="n",yaxt="n",xlab="",ylab="")
+    
+    points(date_list,y.vals,ylim=c(0,ylimmax),pch=19,cex=1,col='black') # Lab fitted points
+    points(date_list,y.vals2,ylim=c(0,ylimmax),pch=1,cex=1,col='black') # DLI fitted points
   }
-  points(date_list,y.vals+y.vals2,ylim=c(0,ylimmax),pch=19,cex=1,col='black') # Lab fitted points
-  #points(date_list,y.vals2,ylim=c(0,ylimmax),pch=1,cex=1,col='black') # DLI fitted points
+
   
+  
+  if(DoubleFit==FALSE){ # Show model outputs?
+    
+    polygon(c(date_list_all[xSelect2DROP1],rev(date_list_all[xSelect2DROP1])),c(ciP150_All[xSelect2DROP1],rev(ciP250_All[xSelect2DROP1])),lty=0,col=rgb(0,0.3,1,0.3))
+    
+    polygon(c(date_list_all[xSelect2DROP1],rev(date_list_all[xSelect2DROP1])),c(ciP1_All[xSelect2DROP1],rev(ciP2_All[xSelect2DROP1])),lty=0,col=rgb(0,0.3,1,0.2))
+    lines(date_list_all[xSelect2DROP1],medP_All[xSelect2DROP1],type="l",col=rgb(0,0.3,1),xaxt="n",yaxt="n",xlab="",ylab="")
+    
+    points(date_list,y.vals+y.vals2,ylim=c(0,ylimmax),pch=19,cex=1,col='black') # Lab fitted points
+    
+  }
+
+  
+  # DEBUG
+  #plot(date_list,y.vals2)
+  #lines(date_list_all[xSelect2DROP1],cvector[5,])
+  #lines(date_list_all[xSelect2DROP1],(1-y.vals.prop)*100,lty=2)
   
   # Plot clean up campaign dates
   polygon(c(as.Date("2014-03-08"),as.Date("2014-03-08"),as.Date("2014-03-22"),as.Date("2014-03-22")),c(-1,1e4,1e4,-1),col=rgb(1,0,0,0.3),lty=0)

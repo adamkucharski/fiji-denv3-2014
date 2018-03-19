@@ -39,7 +39,7 @@ ReportC<-function(ct, theta,repSS,yprop){
   mu01=sapply(ct,function(x){max(x,0)})
   
   if(repSS=="lab"){ mu_output = sapply(yprop*mu01,function(x){rnbinom(1, mu=theta[["repR"]]*x,size=1/theta[["repvol"]] )}) }
-  if(repSS=="sus"){ mu_output = sapply((1-yprop)*mu01,function(x){rnbinom(1, mu=theta[["repRA"]]*x,size=1/theta[["repvolA"]] )}) }
+  if(repSS=="sus"){ mu_output = sapply((1-yprop)*mu01,function(x){rnbinom(1, mu=theta[["repRA"]]*x,size=1/theta[["repvol"]] )}) }
   
   # if(cutt.date<=swap.date){
   # sapply(mu01,function(x){rnbinom(1, mu=theta[["repR"]]*x,size=1/theta[["repvol"]])})
@@ -68,7 +68,7 @@ LikelihoodFunction<-function(y, c1, c2, theta,iiN,repSS=NULL,yprop){
   # }
   
   if(repSS=="lab"){ lik_output = sum( dnbinom(y, mu=theta[["repR"]]*muAll*yprop,size=1/theta[["repvol"]],log=T) )}
-  if(repSS=="sus"){ lik_output = sum( dnbinom(y, mu=theta[["repRA"]]*muAll*yprop,size=1/theta[["repvolA"]],log=T) )}
+  if(repSS=="sus"){ lik_output = sum( dnbinom(y, mu=theta[["repRA"]]*muAll*(1-yprop),size=1/theta[["repvol"]],log=T) )}
   
   lik_output
 
@@ -203,6 +203,7 @@ Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,y.vals2, y.vals.p
   
   output <- Deterministic_modelR(1,dt,theta, theta_init, y.vals,y.vals2, y.vals.prop, time.vals,repTab,locationI)
 
+  
   if(plotA==T){
     
     case_count=output$C_trace
@@ -363,17 +364,21 @@ Deterministic_modelR<-function(iiN,dt,theta, theta_init, y.vals, y.vals2, y.vals
   seroPA_2 <- tail(R_trajA,1)/theta[["npopA"]]
   
   # Calculate effective R and constrain to be <1
-  likesero1 = (ifelse(locationI=="Central2014",dbinom(n_Luminex_C_D3[1], size=n_Luminex_C_D3[3], prob=seroPC_1, log = T),0) +
-                 ifelse(locationI=="Central2014",dbinom(n_Luminex_A_D3[1], size=n_Luminex_A_D3[3], prob=seroPA_1, log = T),0))*theta[["sero_lik1"]]
-  liksero2 = (ifelse(locationI=="Central2014",dbinom(n_Luminex_C_D3[2], size=n_Luminex_C_D3[3], prob=seroPC_2, log = T),0) +
-               ifelse(locationI=="Central2014",dbinom(n_Luminex_A_D3[2], size=n_Luminex_A_D3[3], prob=seroPA_2, log = T),0) )*theta[["sero_lik2"]]
+  likesero1 = (ifelse(locationI=="Central",dbinom(n_Luminex_C_D3[1], size=n_Luminex_C_D3[3], prob=seroPC_1, log = T),0) +
+                 ifelse(locationI=="Central",dbinom(n_Luminex_A_D3[1], size=n_Luminex_A_D3[3], prob=seroPA_1, log = T),0))*theta[["sero_lik1"]]
+  liksero2 = (ifelse(locationI=="Central",dbinom(n_Luminex_C_D3[2], size=n_Luminex_C_D3[3], prob=seroPC_2, log = T),0) +
+               ifelse(locationI=="Central",dbinom(n_Luminex_A_D3[2], size=n_Luminex_A_D3[3], prob=seroPA_2, log = T),0) )*theta[["sero_lik2"]]
 
   likcasesLab = LikelihoodFunction(y.vals,casecountC[1:length(y.vals)],casecountA[1:length(y.vals)], theta,1,repSS="lab",y.vals.prop[1:length(y.vals)])
   likcasesDLI = LikelihoodFunction(y.vals2,casecountC[1:length(y.vals)],casecountA[1:length(y.vals)], theta,1,repSS="sus",y.vals.prop[1:length(y.vals)])
   
+  #print(likesero1)
+  #print(likcasesDLI)
   
   # Check if there is a second epidemic (i.e. at least one reported case). 60 is cutoff for 2015
   #likcases2015 = -1e10*((theta[["repR"]] * max(casecountC[60:length(casecountC)] + casecountA[60:length(casecountC)]) > 1) ) #& min(casecountC+casecountC)>1 ) # Condition on persistence
+  #print(locationI)
+  #print(c(likcasesLab,likcasesDLI,likesero1,liksero2))
   
   likelihood = likcasesLab + likcasesDLI + likesero1 + liksero2 #+ theta[["no2015"]]*likcases2015
   
