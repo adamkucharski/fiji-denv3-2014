@@ -10,12 +10,12 @@
 
 run_transmission_mcmc <- function(MCMC.runs = 10){
 
-  #multichain <- c(1:4) # run in parallel
+  multichain <- c(1:4) # run in parallel
   
-  multichain=4
+  #multichain=c(4)
   
-  #foreach(iiM=multichain) %dopar% {  # Loop over scenarios with parallel MCMC chains
-  for(iiM in multichain){
+  foreach(iiM=multichain) %dopar% {  # Loop over scenarios with parallel MCMC chains
+  #for(iiM in multichain){
     # - - - - - - - - - - - 
     # Initialise ICs 
     
@@ -30,21 +30,23 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
                         beta_c_constrain=rep(NA,locnn),
                         sero_lik1=rep(NA,locnn),
                         sero_lik2=rep(NA,locnn),
-                        no2015=rep(0,locnn), # default is to allow 2nd wave
+                        no2015=rep(0,locnn), # Deprecated
                         repR=rep(NA,locnn),
                         repRA=rep(NA,locnn),
                         rep_drop=rep(NA,locnn),
                         repvol=rep(0.05,locnn),
                         repvolA=rep(0.02,locnn),
                         t_start=0,
-                        npop=rep(NA,locnn),npopC=rep(NA,locnn),npopA=rep(NA,locnn),
+                        npop=rep(NA,locnn),npopC=rep(NA,locnn),npopA=rep(NA,locnn),npopM=rep(NA,locnn),
                         shift_date=rep(NA,locnn))
     
     # Global parameters
     theta = c(r_exp=1/prior_p_Exp[1], # latent (h) # from Chan et al at 30C
               r_inf=1/prior_p_Inf[1], # inf (h)
               v_exp=1/prior_p_VEx[1], # latent (v) # from Chan et al at 30C
-              mu_v=1/prior_p_MuV[1], # lifespan
+              mu_v=1/prior_p_MuV[1], # mortality rate
+              mos_density = as.numeric(thetaR_IC[thetaR_IC$param=="m_density",2]), # Deprecated
+              recruit_m=1/prior_p_MuV[1], # mosquito recruitment
               beta2=as.numeric(thetaR_IC[thetaR_IC$param=="beta_h_2",2]), # baseline after control - jointly fitted
               beta3=as.numeric(thetaR_IC[thetaR_IC$param=="beta_h_3",2]), # DEPRECATED
               beta_v=as.numeric(thetaR_IC[thetaR_IC$param=="beta_v",2]), # Relative mixing M-to-H
@@ -90,11 +92,13 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
       thetaAll[iiH,"beta_c_base"]=as.numeric(thetaR_IC[thetaR_IC$param=="beta_control_base",c1])
       thetaAll[iiH,"beta_c_grad"]=as.numeric(thetaR_IC[thetaR_IC$param=="beta_control_grad",c1]) # Gradient of control function
       thetaAll[iiH,"beta_c_mask"]=as.numeric(thetaR_IC[thetaR_IC$param=="beta_control_mask",c1]) # Mask control measure (i.e. turn off)
-      thetaAll[iiH,"beta_c_constrain"]=as.numeric(thetaR_IC[thetaR_IC$param=="beta_control_mask2",c1]) # Use to constrain fitting of midpoint in 2014 or not
+      thetaAll[iiH,"beta_c_constrain"]= 1  # Use to constrain fitting of midpoint in 2014 or not
       thetaAll[iiH,"beta_v_mask"]=as.numeric(thetaR_IC[thetaR_IC$param=="beta_v_mask",c1]) # Mask sesaonaltiy (i.e. turn off)
       thetaAll[iiH,"sero_lik1"]=1 # fit PRE serology
       thetaAll[iiH,"sero_lik2"]=1 # fit POST serology
       thetaAll[iiH,"npop"]=popsize; thetaAll[iiH,"npopC"]=popsizeC; thetaAll[iiH,"npopA"]=popsizeA
+      thetaAll[iiH,"npopM"]=1 #(thetaAll[iiH,"npopC"]+thetaAll[iiH,"npopA"])*theta[["mos_density"]] # Mosquito population size
+      
       thetaAll[iiH,"repR"]=as.numeric(thetaR_IC[thetaR_IC$param=="rep",c1])
       thetaAll[iiH,"repRA"]=as.numeric(thetaR_IC[thetaR_IC$param=="repA",c1])
       thetaAll[iiH,"rep_drop"]=rep.drop.date
@@ -111,18 +115,21 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
       theta_initAll[iiH,"r_initA"]=thetaAll[iiH,"npopA"] * (n_Luminex_A_D3[1]/n_Luminex_A_D3[3])
       
       theta_initAll[iiH,"e_initC"]=initial_inf; theta_initAll[iiH,"i1_initC"]=initial_inf
-      theta_initAll[iiH,"em_initC"]=init_vec; theta_initAll[iiH,"im_initC"]=init_vec
       theta_initAll[iiH,"e_initA"]=initial_inf; theta_initAll[iiH,"i1_initA"]=initial_inf
-      theta_initAll[iiH,"em_initA"]=init_vec; theta_initAll[iiH,"im_initA"]=init_vec
       
       theta_initAll[iiH,"s_initC"]=thetaAll[iiH,"npopC"]-theta_initAll[iiH,"i1_initC"]-theta_initAll[iiH,"e_initC"]-theta_initAll[iiH,"r_initC"]
-      theta_initAll[iiH,"sm_initC"]=1-theta_initAll[iiH,"em_initC"]-theta_initAll[iiH,"im_initC"]
-      
       theta_initAll[iiH,"s_initA"]=thetaAll[iiH,"npopA"]-theta_initAll[iiH,"i1_initA"]-theta_initAll[iiH,"e_initA"]-theta_initAll[iiH,"r_initA"]
-      theta_initAll[iiH,"sm_initA"]=1-theta_initAll[iiH,"em_initA"]-theta_initAll[iiH,"im_initA"]
+      
+      theta_initAll[iiH,"em_initC"]=init_vec*thetaAll[iiH,"npopM"]; theta_initAll[iiH,"im_initC"]=init_vec*thetaAll[iiH,"npopM"]
+      #theta_initAll[iiH,"em_initA"]=init_vec; theta_initAll[iiH,"im_initA"]=init_vec
+      theta_initAll[iiH,"sm_initC"]=thetaAll[iiH,"npopM"]-theta_initAll[iiH,"em_initC"]-theta_initAll[iiH,"im_initC"]
+
+      theta_initAll[iiH,"sm_initA"] = theta[["beta_v_mid"]] # Mosquito larvae initially = carrying capcity
       
     }
     
+    # Set carrying capacity to mosquito population
+   # theta[["beta_v_mid"]] = thetaAll[1,"npopM"]
     
     # - - - - - - - - - - - 
     # Specific different model types
@@ -131,11 +138,11 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
     # Turn on/off 2014 control and seasonality
     # 1: SIR model cases  2: SIR model serology and cases  3: SIR + climate  4: SIR + climate + control
     thetaAll[1,"beta_c_constrain"]=1
-    #if(use.ELISA.data==T){thetaAll[1,"beta"]=1.3*thetaAll[1,"beta"]} # Adjust for higher immunity in ELISA data
-    if(iiM==1){ thetaAll[1,"beta_c_mask"]=0 ; thetaAll[1,"beta_v_mask"]=0 ; thetaAll[1,"sero_lik1"] = 0; thetaAll[1,"sero_lik2"] = 0; thetaAll[1,"beta"]=0.2; theta[["beta_v"]]=10 }
-    if(iiM==2){ thetaAll[1,"beta_c_mask"]=0 ; thetaAll[1,"beta_v_mask"]=0; thetaAll[1,"beta"]=0.2;  theta[["beta_v"]]=10 }
-    if(iiM==3){ thetaAll[1,"beta_c_mask"]=0; theta[["beta_v_amp"]]=0.3 } #; theta[["beta_v_amp"]]=0.9  } #; thetaAll[1,"beta"]=0.05 } #; ; thetaAll[1,"beta_v"]=10 }
-    if(iiM==4){theta[["beta_v_amp"]]=0.6 }
+    if(use.ELISA.data==T){thetaAll[1,"beta"]=1.3*thetaAll[1,"beta"]} # Adjust for higher immunity in ELISA data
+    if(iiM==1){ thetaAll[1,"beta_c_mask"]=0 ; thetaAll[1,"beta_v_mask"]=0 ; thetaAll[1,"sero_lik1"] = 0; thetaAll[1,"sero_lik2"] = 0 } #; thetaAll[1,"beta"]=0.2; theta[["beta_v"]]=10
+    if(iiM==2){ thetaAll[1,"beta_c_mask"]=0 ; thetaAll[1,"beta_v_mask"]=0; thetaAll[1,"beta"]=2 } #; thetaAll[1,"beta"]=0.2;  theta[["beta_v"]]=10
+    if(iiM==3){ thetaAll[1,"beta_c_mask"]=0; } #; theta[["beta_v_amp"]]=0.9  } #; thetaAll[1,"beta"]=0.05 } #; ; thetaAll[1,"beta_v"]=10 } theta[["beta_v_amp"]]=0.3 
+    #if(iiM==4){} #theta[["beta_v_amp"]]=0.6 
     
     # Covariance matrices - Add theta and thetaAll together in MCMC runs
     nparam=length(theta) 
@@ -152,10 +159,9 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
     
     lmv=length(theta_initAll[1,])
     npcov_init=rep(1,lmv)
-    pmaskInit=c("s_initC","e_initC","sm_initC","em_initC","s_initA","e_initA","sm_initA","em_initA")
+    pmaskInit=c("s_initC","e_initC","sm_initC","em_initC","s_initA","e_initA","em_initA")
     npcov_init[match(pmaskInit,names(theta_initAll[1,]) )]=0
     cov_matrix_theta_init0 = diag(npcov_init)
-    
     
     # Quick simulation to check looks OK
     if(length(multichain)==1){
@@ -271,7 +277,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
       #c_case_ratioTab = if(m>1){sum(c_trace_tabC[m,2,],na.rm = T) /sum(c_trace_tab[m,2,],na.rm = T)}else{c_case_ratioStar}
       
       # Calculate probability function
-      output_prob = ComputeProbability(sim_liktab[m],sim_marg_lik_star,thetatab[m,],theta_star,theta_initAlltab[m,,],theta_initAllstar,thetaAllstar,itertab,c_case_ratioStar,c_case_ratioTab) 
+      output_prob = ComputeProbability(sim_liktab[m],sim_marg_lik_star,thetatab[m,],theta_star,theta_initAlltab[m,,],theta_initAllstar,thetaAllstar[1,],thetaAlltab[m,1,],itertab,c_case_ratioStar,c_case_ratioTab) 
       
       # Update parameter values
       

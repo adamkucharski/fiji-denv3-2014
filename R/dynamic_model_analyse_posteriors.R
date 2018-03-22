@@ -70,21 +70,26 @@ plot_posteriors<-function(p_pick=4){
 
       brekN=15 #,breaks=brekN,
 
-      hist(thetatab$beta[picks],xlab=expression(beta[0]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
-      hist(thetatab$beta_v[picks],xlab=expression('a'[v]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
-      hist(thetatab$beta_v_amp[picks],xlab=expression('a'[0]),prob=TRUE,main=NULL,border=colB,col=colW,xlim=c(0,1))#,xlim=c(0,30))
-      curve(priorAmplitude(x), col="red", lwd=2, add=TRUE, yaxt="n")
+      hist(thetatab$beta[picks],xlab=expression(beta[h]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
+      curve(priorDensity(x), col="red", lwd=2, add=TRUE, yaxt="n")
+      
+      #hist(thetatab$beta_v[picks],xlab=expression('a'[v]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
+      hist(thetatab$beta_v[picks],xlab=expression(beta[v]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
+      curve(priorBetaM2H(x), col="red", lwd=2, add=TRUE, yaxt="n")
+      
+      #hist(thetatab$beta_v_amp[picks],xlab="rainfall effect",prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
+      
       
       hist(thetatab$beta_c_grad[picks],xlab=expression('a'[1]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
       
       hist(thetatab$beta_c_base[picks],xlab=expression('a'[2]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
       hist(thetatab$beta_c_mid[picks],xlab=expression('a'[3]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
       
-      hist(thetatab$repR[picks],xlab="propn cases reported (1)",main=NULL,border=colB,col=colW,prob=TRUE)
-      hist(thetatab$repRA[picks],xlab="propn cases reported (2)",main=NULL,border=colB,col=colW,prob=TRUE)
+      hist(thetatab$repR[picks],xlab="propn cases reported (lab)",main=NULL,border=colB,col=colW,prob=TRUE)
+      hist(thetatab$repRA[picks],xlab="propn cases reported (DLI)",main=NULL,border=colB,col=colW,prob=TRUE)
       
-      hist(thetatab$repvol[picks],xlab="reporting dispersion (1)",main=NULL,border=colB,col=colW,prob=TRUE)
-      hist(thetatab$repvolA[picks],xlab="reporting dispersion (2)",main=NULL,border=colB,col=colW,prob=TRUE)
+      hist(thetatab$repvol[picks],xlab="reporting dispersion",main=NULL,border=colB,col=colW,prob=TRUE)
+      #hist(thetatab$repvolA[picks],xlab="reporting dispersion (2)",main=NULL,border=colB,col=colW,prob=TRUE)
 
       
       #hist(thetatab$repvol[picks],xlab=expression(phi),main=NULL,col=rgb(0.5,0.8,1),prob=TRUE)
@@ -109,7 +114,7 @@ plot_posteriors<-function(p_pick=4){
 
       # PLOT Parameter correlations
       param.names = c("beta","beta_v","beta_v_amp","beta_c_grad","beta_c_base","beta_c_mid"); # beta_c_base is base level
-      param.labels = c(expression(beta),expression('a'[v]),expression('a'[0]),expression('a'[1]),expression('a'[2]),expression('a'[tau]))
+      param.labels = c(expression(beta[h]),expression(beta[v]),expression('a'[0]),expression('a'[1]),expression('a'[2]),expression('a'[tau]))
 
       par(mfcol=c(length(param.names),length(param.names)))
       par(mar = c(3,3,1,1),mgp=c(1.8,0.5,0))
@@ -266,6 +271,7 @@ plot_weather_and_control <- function(){
 
 model_comparison <- function( compareN = c(2:4) ){
 
+  # Need to update these
   param.init = 5
   param.all = 7
   paramlist = c(0,0,2,2+3,0,0,2,2+3)
@@ -288,10 +294,10 @@ model_comparison <- function( compareN = c(2:4) ){
     lik.tab = c(lik.tab,max(sim_likOut))
 
     # Validate likelihood
-    output1 = Deterministic_modelR(1,dt, thetatab[pick.max,], theta_inittab[pick.max,], y.vals,time.vals,repTN,locationI=locationtab[1])
+    output1 = Deterministic_modelR(1,dt, thetatab[pick.max,], theta_inittab[pick.max,], y.vals,y.vals2,y.vals.prop,time.vals,repTN,locationI=locationtab[1])
     print( output1$lik)
     
-    output1 = Deterministic_modelR(1,dt, apply(thetatab,2,mean), apply(theta_initAlltab[picks,iiH,],2,mean), y.vals,time.vals,repTN,locationI=locationtab[1])
+    output1 = Deterministic_modelR(1,dt, apply(thetatab,2,mean), apply(theta_initAlltab[picks,iiH,],2,mean), y.vals,y.vals2,y.vals.prop,time.vals,repTN,locationI=locationtab[1])
     loglik_theta_bar = output1$lik
     
     deviance.at.post.mean = -2*loglik_theta_bar #-2*max(sim_likOut)
@@ -322,7 +328,7 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   locnnLoop=1
 
   layout(matrix(c(1,1,2,2,1,1,2,2,3,3,5,5,4,4,5,5), 4,byrow=T) )
-  par(mgp=c(2,0.7,0),mar = c(3,3,1,3))
+  par(mgp=c(1.7,0.5,0),mar = c(3,3,1,3))
   
   labelN=1
 
@@ -340,7 +346,7 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   repTab=rR.vals/totalSS[iiH]
   tMax <- length(time.vals) #length(y.vals)
   
-  btsp=100
+  btsp=1000
   
   cvector=matrix(NA,nrow=btsp,ncol=tMax)
   cvector_lab=matrix(NA,nrow=btsp,ncol=tMax)
