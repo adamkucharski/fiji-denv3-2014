@@ -45,8 +45,8 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
               r_inf=1/prior_p_Inf[1], # inf (h)
               v_exp=1/prior_p_VEx[1], # latent (v) # from Chan et al at 30C
               mu_v=1/prior_p_MuV[1], # mortality rate
-              mos_density = as.numeric(thetaR_IC[thetaR_IC$param=="m_density",2]), # Deprecated
-              recruit_m=1/prior_p_MuV[1], # mosquito recruitment
+              prop_at_risk = as.numeric(thetaR_IC[thetaR_IC$param=="at_risk",2]), # Deprecated
+              recruit_m=as.numeric(thetaR_IC[thetaR_IC$param=="recruit_m",2]), # mosquito recruitment
               beta2=as.numeric(thetaR_IC[thetaR_IC$param=="beta_h_2",2]), # baseline after control - jointly fitted
               beta3=as.numeric(thetaR_IC[thetaR_IC$param=="beta_h_3",2]), # DEPRECATED
               beta_v=as.numeric(thetaR_IC[thetaR_IC$param=="beta_v",2]), # Relative mixing M-to-H
@@ -138,11 +138,12 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
     # Turn on/off 2014 control and seasonality
     # 1: SIR model cases  2: SIR model serology and cases  3: SIR + climate  4: SIR + climate + control
     thetaAll[1,"beta_c_constrain"]=1
-    if(use.ELISA.data==T){thetaAll[1,"beta"]=1.3*thetaAll[1,"beta"]} # Adjust for higher immunity in ELISA data
+    if(use.ELISA.data==T){thetaAll[1,"beta"]=1*thetaAll[1,"beta"]} # Adjust for higher immunity in ELISA data
     if(iiM==1){ thetaAll[1,"beta_c_mask"]=0 ; thetaAll[1,"beta_v_mask"]=0 ; thetaAll[1,"sero_lik1"] = 0; thetaAll[1,"sero_lik2"] = 0 } #; thetaAll[1,"beta"]=0.2; theta[["beta_v"]]=10
     if(iiM==2){ thetaAll[1,"beta_c_mask"]=0 ; thetaAll[1,"beta_v_mask"]=0; thetaAll[1,"beta"]=2 } #; thetaAll[1,"beta"]=0.2;  theta[["beta_v"]]=10
     if(iiM==3){ thetaAll[1,"beta_c_mask"]=0; } #; theta[["beta_v_amp"]]=0.9  } #; thetaAll[1,"beta"]=0.05 } #; ; thetaAll[1,"beta_v"]=10 } theta[["beta_v_amp"]]=0.3 
     #if(iiM==4){} #theta[["beta_v_amp"]]=0.6 
+
     
     # Covariance matrices - Add theta and thetaAll together in MCMC runs
     nparam=length(theta) 

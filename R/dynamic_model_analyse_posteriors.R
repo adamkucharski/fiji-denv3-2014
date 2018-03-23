@@ -71,7 +71,7 @@ plot_posteriors<-function(p_pick=4){
       brekN=15 #,breaks=brekN,
 
       hist(thetatab$beta[picks],xlab=expression(beta[h]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
-      curve(priorDensity(x), col="red", lwd=2, add=TRUE, yaxt="n")
+      curve(priorBetaH2M(x), col="red", lwd=2, add=TRUE, yaxt="n")
       
       #hist(thetatab$beta_v[picks],xlab=expression('a'[v]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
       hist(thetatab$beta_v[picks],xlab=expression(beta[v]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
@@ -91,6 +91,8 @@ plot_posteriors<-function(p_pick=4){
       hist(thetatab$repvol[picks],xlab="reporting dispersion",main=NULL,border=colB,col=colW,prob=TRUE)
       #hist(thetatab$repvolA[picks],xlab="reporting dispersion (2)",main=NULL,border=colB,col=colW,prob=TRUE)
 
+      hist(thetatab$recruit_m[picks],xlab="recruitment rate",main=NULL,border=colB,col=colW,prob=TRUE)
+      
       
       #hist(thetatab$repvol[picks],xlab=expression(phi),main=NULL,col=rgb(0.5,0.8,1),prob=TRUE)
       hist(theta_inittab$i1_initC[picks],xlab=expression('I'[hc]^0),main=NULL,border=colB,col=colW,prob=TRUE)
@@ -327,8 +329,8 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   
   locnnLoop=1
 
-  layout(matrix(c(1,1,2,2,1,1,2,2,3,3,5,5,4,4,5,5), 4,byrow=T) )
-  par(mgp=c(1.7,0.5,0),mar = c(3,3,1,3))
+  layout(matrix(c(1,1,2,2,1,1,2,2,3,3,4,4,3,3,5,5), 4,byrow=T) )
+  par(mgp=c(1.7,0.5,0),mar = c(3,3,1,3),mai=c(0.2,0.5,0.2,0.2))
   
   labelN=1
 
@@ -347,6 +349,7 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   tMax <- length(time.vals) #length(y.vals)
   
   btsp=1000
+  PickList = sample(picks,btsp,replace=T)
   
   cvector=matrix(NA,nrow=btsp,ncol=tMax)
   cvector_lab=matrix(NA,nrow=btsp,ncol=tMax)
@@ -355,11 +358,11 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   svectorA=matrix(NA,nrow=btsp,ncol=tMax)
   
   for(ii in 1:btsp){
-    pick=sample(picks,1)
+    pick= PickList[ii]
     cvector[ii,]= ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="sus",y.vals.prop) #+ ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="lab",y.vals.prop) # Edit for both datasets
     cvector_lab[ii,]= ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="lab",y.vals.prop) #+ ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="lab",y.vals.prop) # Edit for both datasets
     cvectorALL[ii,]= ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="sus",y.vals.prop) + ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="lab",y.vals.prop)
-    svectorC[ii,]= r_trace_tabC[pick,1:tMax]/thetatab[pick,]$npopC # Proportion immune C
+    svectorC[ii,]= r_trace_tabC[pick,1:tMax]/thetatab[pick,]$npopC # Proportion immune C thetatab[pick,"prop_at_risk"]*
     svectorA[ii,]= r_trace_tabA[pick,1:tMax]/thetatab[pick,]$npopA # Proportion immune A
   }
   
@@ -394,11 +397,11 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   date_list_all = seq(min(date_list),max(date_list)+1000,7) # This expands time.vals to full list
   date_plot=min(date_list)+ 0 - 7 
 
-  xRange = c(as.Date("2013-11-11"),as.Date("2015-10-16")); xRange2 = xRange # DATES OF TIMESERIES
+  xRange = c(as.Date("2013-11-04"),as.Date("2015-10-16")); xRange2 = xRange # DATES OF TIMESERIES
   if(long_time==T){
-    xRangeTimeS = c(as.Date("2013-11-11"),as.Date("2015-10-16")) #as.Date("2015-12-16")) # DATE OF TIME SERIES as.Date("2014-09-01"))
+    xRangeTimeS = c(as.Date("2013-11-04"),as.Date("2015-10-16")) #as.Date("2015-12-16")) # DATE OF TIME SERIES as.Date("2014-09-01"))
   }else{
-    xRangeTimeS = c(as.Date("2013-11-11"),as.Date("2014-09-01")) #as.Date("2015-12-16")) # DATE OF TIME SERIES as.Date("2014-09-01"))
+    xRangeTimeS = c(as.Date("2013-11-04"),as.Date("2014-08-30")) #as.Date("2014-09-01")# DATE OF TIME SERIES as.Date("2014-09-01"))
   }
 
   xSelect=(1:length(date_list))
@@ -430,8 +433,7 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
     points(date_list,y.vals2,ylim=c(0,ylimmax),pch=1,cex=1,col='black') # DLI fitted points
   }
 
-  
-  
+
   if(DoubleFit==FALSE){ # Show model outputs?
     
     polygon(c(date_list_all[xSelect2DROP1],rev(date_list_all[xSelect2DROP1])),c(ciP150_All[xSelect2DROP1],rev(ciP250_All[xSelect2DROP1])),lty=0,col=rgb(0,0.3,1,0.3))
@@ -439,16 +441,13 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
     polygon(c(date_list_all[xSelect2DROP1],rev(date_list_all[xSelect2DROP1])),c(ciP1_All[xSelect2DROP1],rev(ciP2_All[xSelect2DROP1])),lty=0,col=rgb(0,0.3,1,0.2))
     lines(date_list_all[xSelect2DROP1],medP_All[xSelect2DROP1],type="l",col=rgb(0,0.3,1),xaxt="n",yaxt="n",xlab="",ylab="")
     
-    points(date_list,y.vals+y.vals2,ylim=c(0,ylimmax),pch=19,cex=1,col='black') # Lab fitted points
+    lines(date_list,y.vals+y.vals2,ylim=c(0,ylimmax),lwd=1.5,col='black') # Lab fitted points
+    #points(date_list,y.vals+y.vals2,ylim=c(0,ylimmax),pch=19,cex=1,col='black') # Lab fitted points
+    points(date_list,y.vals,ylim=c(0,ylimmax),pch=19,cex=1,col='black') # Lab fitted points
+    points(date_list,y.vals2,ylim=c(0,ylimmax),pch=1,cex=1,col='black') # DLI fitted points
     
   }
 
-  
-  # DEBUG
-  #plot(date_list,y.vals2)
-  #lines(date_list_all[xSelect2DROP1],cvector[5,])
-  #lines(date_list_all[xSelect2DROP1],(1-y.vals.prop)*100,lty=2)
-  
   # Plot clean up campaign dates
   polygon(c(as.Date("2014-03-08"),as.Date("2014-03-08"),as.Date("2014-03-22"),as.Date("2014-03-22")),c(-1,1e4,1e4,-1),col=rgb(1,0,0,0.3),lty=0)
 
@@ -503,36 +502,39 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   
   xRange2 = xRange #; xRange2[2] = xRange[2] + length(extra_date)*7 - 7*3
   
-  plotCosR0 = NULL; plotReduce = NULL; plotBoth = NULL; plotCosR0vary = NULL
+  plotCosR0 = NULL; plotReduce = NULL;plotCosR0vary = NULL # plotBoth = NULL; 
   plotR0store = NULL; plotRRstore = NULL; plotRCVstore = NULL; plotRAVstore = NULL; plotRVCstore = NULL
-  btstrap = sample(picks,100,replace=T)
+  btstrap = sample(picks,1000,replace=T)
   plotSuS_C = NULL;     plotSuS_A = NULL;     plotSuS_V = NULL
   
-  for(ii in 1:length(btstrap)){
-    b_ii = btstrap[ii]
-    beta_ii = seasonal_f(time.V,date0= 0,thetatab[b_ii, ]) # INCLUDE SHIFT START WEEK LATER
+  btstrap = 100
+  
+  for(ii in 1:btstrap){
+    b_ii = PickList[ii]
+    #beta_ii = seasonal_f(time.V,date0= 0,thetatab[b_ii, ]) # INCLUDE SHIFT START WEEK LATER
     
-    beta_control = sapply(time.V,function(x){decline_f(x,date0= 0,thetatab[b_ii, ])})
+    beta_control = sapply(time.V,function(x){decline_f(x,date0= thetatab[b_ii,"shift_date" ],thetatab[b_ii, ])})
     
     # Compile individual beta
     plotReduce=rbind(plotReduce,  beta_control)
-    plotCosR0=rbind(plotCosR0,  beta_ii)
-    plotBoth=rbind(plotBoth,  beta_ii*beta_control)
+    #plotCosR0=rbind(plotCosR0,  beta_ii)
+    #plotBoth=rbind(plotBoth,  beta_ii*beta_control)
     
-    plotCosR0vary=rbind(plotCosR0vary,  1-min(beta_ii)/max(beta_ii))
+    #plotCosR0vary=rbind(plotCosR0vary,  1-min(beta_ii)/max(beta_ii))
     
     #Compile R/R0
     t.rpick = length(time.V)
     s_pickH = c(s_trace_tabC[b_ii,1:tMax]+s_trace_tabA[b_ii,1:tMax],rep(s_trace_tabC[b_ii,1:tMax]+s_trace_tabA[b_ii,tMax],length(extra_date)) )/(thetatab$npopC[b_ii] + thetatab$npopA[b_ii]) # Note this is reporting week
     x_pickC = c(x_trace_tabC[b_ii,1:tMax],rep(x_trace_tabC[b_ii,tMax],length(extra_date)) ) # Mosquito susceptibility =1
+    x_pickA = c(x_trace_tabA[b_ii,1:tMax],rep(x_trace_tabA[b_ii,tMax],length(extra_date)) ) # Mosquito susceptibility =1
     
     # Susceptible children and adults
     s_pickC = c(s_trace_tabC[b_ii,1:tMax],rep(s_trace_tabC[b_ii,tMax],length(extra_date)) )/thetatab$npopC[b_ii] # Note this is reporting week
     s_pickA = c(s_trace_tabA[b_ii,1:tMax],rep(s_trace_tabA[b_ii,tMax],length(extra_date)) )/thetatab$npopA[b_ii] # Note this is reporting week
     
     # NOTE DEBUG -- HAVE REMOVED MOSQUITOES
-    output_rr = calculate_r0(th_in=thetatab[b_ii,],sus_c=s_pickH[cosPick],sm_c=x_pickC[cosPick],b_vary=beta_ii*beta_control)
-    output_rr_nocontrol = calculate_r0(th_in=thetatab[b_ii,],sus_c=1+0*s_pickH[cosPick],sm_c=1+0*x_pickC[cosPick],b_vary=beta_ii)
+    output_rr = calculate_r0(th_in=thetatab[b_ii,],sus_c=s_pickH[cosPick],sm_c=x_pickC[cosPick]/x_pickA[cosPick],t_vary=time.V,controlT=1)
+    output_rr_nocontrol = calculate_r0(th_in=thetatab[b_ii,],sus_c=1+0*s_pickH[cosPick],sm_c=1+0*x_pickC[cosPick],t_vary=time.V,controlT=0)
     
     r0_post = output_rr_nocontrol$rr_out
     rr_post = output_rr$rr_out
@@ -549,7 +551,7 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
     
   }
   
-  plotCosMR0 = apply(plotCosR0,2,c.nume) ;  plotCosMinMax = apply(plotCosR0vary,2,c.nume) ; plotReduceM = apply(plotReduce,2,c.nume) ; plotBothM = apply(plotBoth,2,c.nume) 
+  plotReduceM = apply(plotReduce,2,c.nume)  #plotCosMinMax = apply(plotCosR0vary,2,c.nume) ; plotCosMR0 = apply(plotCosR0,2,c.nume) ; 
   plotRR_both = apply(plotRRstore,2,c.nume) 
   plotR0_both = apply(plotR0store,2,c.nume) 
   
@@ -563,90 +565,88 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   maxR0 = apply(plotR0_both,1,max) %>% signif(3)
   weeksR0 = (apply(plotR0_both>1,1,sum)/(1+as.numeric(max(date_listSeason)-min(date_listSeason))/7)) %>% signif(3)
   reduceProp = 1-c(tail(plotReduceM[1,],1),tail(plotReduceM[2,],1),tail(plotReduceM[3,],1)) %>% signif(3)
-  seasonProp = plotCosMinMax %>% signif(3)
+  #seasonProp = plotCosMinMax %>% signif(3)
   
   write.csv(
-    cbind(c("meanR0","maxR0","seasonreduce","controlreduce","R_cv","R_vh"),
+    cbind(c("meanR0","maxR0","controlreduce","R_cv","R_vh"),
     rbind(
     paste(meanR0[1]," (",meanR0[2],"-",meanR0[3],")",sep=""), # mean R0
     paste(maxR0[1]," (",maxR0[2],"-",maxR0[3],")",sep=""), # max R0
     #paste(weeksR0[1]," (",weeksR0[2],"-",weeksR0[3],")",sep=""), # weeks R0>1
-    paste(seasonProp[1]," (",seasonProp[2],"-",seasonProp[3],")",sep=""), # seasonal reduction
+    #paste(seasonProp[1]," (",seasonProp[2],"-",seasonProp[3],")",sep=""), # seasonal reduction
     paste(reduceProp[1]," (",reduceProp[3],"-",reduceProp[2],")",sep=""), # control reduction
     c.text(plotRCVstore), # R to H
     c.text(plotRVCstore) # R to V
     )),paste("plots/Table_5_params_part2_",use.ELISA.data,exclude.p,"_",p_pick,".csv",sep=""))
 
-  
-  
+
   # - - 
-  # Plot interventions -- need to set up simulation code
+  # Plot interventions 
   
   #par(new=TRUE)
   #plot(date_listSeason,plotCosMR0[3,],type="l",col=rgb(0,0,0,0),ylim=c(0,2),xaxt="n",yaxt="n",xlim=xRange2,xlab="",ylab="")
-  plot(date_listSeason,plotCosMR0[3,],type="l",col=rgb(0,0,0,0),ylim=c(0,2),xlim=xRangeTimeS,xlab="",ylab=paste("relative transmission",sep=""))
+  plot(date_listSeason,plotReduceM[3,],type="l",col=rgb(0,0,0,0),ylim=c(0,2),xlim=xRangeTimeS,xlab="",ylab=paste("R and relative transmission",sep=""))
   
-  polygon(c(date_listSeason,rev(date_listSeason)),c(plotCosMR0[2,],rev(plotCosMR0[3,])),lty=0,col=rgb(0,0.3,1,0.2))
-  lines(date_listSeason,plotCosMR0[1,],type="l",col=rgb(0,0.3,1),xlab="",ylab="")
-  if(iiH == 1){
-    season_cut = date_listSeason
-    plotReduceM = plotReduceM[,1:length(date_listSeason)]
-  }else{
-    season_cut = (date_listSeason)
-  }
+  # Plot clean up campaign dates
+  polygon(c(as.Date("2014-03-08"),as.Date("2014-03-08"),as.Date("2014-03-22"),as.Date("2014-03-22")),c(-1,1e4,1e4,-1),col=rgb(1,0,0,0.3),lty=0)
+
+  season_cut = date_listSeason
+  plotReduceM = plotReduceM[,1:length(date_listSeason)]
   
+  # Plot control measures
   if(p_pick>=4){
     polygon(c(season_cut,rev(season_cut)),c(plotReduceM[2,],rev(plotReduceM[3,])),lty=0,col=rgb(0,0.6,0.3,0.2))
     lines(season_cut,plotReduceM[1,],type="l",col=rgb(0,0.6,0.3),xlab="",ylab="")
-
+    
   }
   
-  lines(c(min(date_listSeason),max(date_listSeason)),c(1,1),col="black",lty=3)
-  title(main=LETTERS[3],adj=0)
-
-  # Plot clean up campaign dates
-  polygon(c(as.Date("2014-03-08"),as.Date("2014-03-08"),as.Date("2014-03-22"),as.Date("2014-03-22")),c(-1,1e4,1e4,-1),col=rgb(1,0,0,0.3),lty=0)
-  
-  
-  # - - 
-  # Plot reproduction number
-  
-  plot(date_listSeason,plotCosMR0[3,],type="l",col=rgb(0,0,0,0),ylim=c(0,1.1*max(plotR0_both[3,])),xlim=xRangeTimeS,xlab="",ylab=paste("reproduction number",sep=""))
-  
+  # Plot R=1 line
   lines(c(min(date_listSeason),max(date_listSeason)),c(1,1),col="black",lty=3)
   
+  # Plot basic reproduction number
   polygon(c(date_listSeason,rev(date_listSeason)),c(plotRR_both[2,],rev(plotRR_both[3,])),lty=0,col=rgb(0,0,1,0.2))
   lines(date_listSeason,plotRR_both[1,],type="l",col=rgb(0,0,1),xlab="",ylab="")
   
+  # Plot effective reproduction number
   polygon(c(date_listSeason,rev(date_listSeason)),c(plotR0_both[2,],rev(plotR0_both[3,])),lty=0,col=rgb(0,0,0,0.2))
   lines(date_listSeason,plotR0_both[1,],type="l",col=rgb(0,0,0),xlab="",ylab="")
-  
-  # Plot clean up campaign dates
-  polygon(c(as.Date("2014-03-08"),as.Date("2014-03-08"),as.Date("2014-03-22"),as.Date("2014-03-22")),c(-1,1e4,1e4,-1),col=rgb(1,0,0,0.3),lty=0)
-  
-  title(main=LETTERS[4],adj=0)
-  
+
+  title(main=LETTERS[3],adj=0)
+
   # - - 
   # Plot weather patterns
   
+  # Define data
   weather.date = as.Date(weather.data$Date) + 15
   
-  plot(weather.date,weather.data$Rain_av,type="l",lty=1,col="blue",xlab="",ylim=c(0,500),ylab="rainfall (mm) ",lwd=0,xlim=xRangeTimeS)
-  for(ii in 1:(length(weather.data$Rain_av)/12)-1){ 
-    lines(weather.date+365*ii,weather.data$Rain_av,type="l",lty=1,col=rgb(0,0,1,0.2),xaxs="i",lwd=1)
-  }
-  lines(weather.date,weather.data$Rain_av,type="l",lty=1,col=rgb(0,0,1),xaxs="i",lwd=2)
-
-  par(new=TRUE)
-  plot(weather.date,weather.data$Av_temp,type="l",lty=1,col="red",xaxt="n",yaxt="n",xlab="",ylab="",lwd=0,ylim=c(21,28),xlim=xRangeTimeS)
-  for(ii in 1:(length(weather.data$Av_temp)/12)-1){
-    lines(weather.date+365*ii,weather.data$Av_temp,type="l",lty=1,col=rgb(1,0,0,0.2),xaxs="i",lwd=1)
-  }
-  lines(weather.date,weather.data$Av_temp,type="l",lty=1,col=rgb(1,0,0),xaxs="i",lwd=2)
+  t_numeric = as.numeric(seq(start.date-100,start.date+800,1) - start.date)
+  temp_plot = seasonaltemp(t_numeric,theta_fit)
+  temp_actl = weather.data$Av_temp
+  rain_actl = weather.data$Rain_av
   
-  axis(4,col="red",col.axis="red")
-  mtext("temperature (°C)", side=4, line=2,col="red",cex=0.7) # Label for 2nd axis
+  # Normalise values
+  temp_plot = temp_plot
+  temp_actl = temp_actl
+  rain_actl = rain_actl/mean(rain_actl)
   
+  plot(t_numeric+start.date,t_numeric,type="l",lty=1,col="white",xlab="",ylim=c(21,27),ylab="temperature (°C) ",lwd=0,xaxs="i",xlim=xRange2)
+  #for(ii in 1:(length(weather.data$Rain_av)/12)-1){ 
+  #points(weather.date+365*ii,weather.data$Av_temp,lty=1,col=rgb(1,0,0,0.3),xaxs="i",pch=1,cex=1)
+  #}
+  points(weather.date,temp_actl,col=rgb(1,0,0),xaxs="i",pch=19,cex=1)
+  lines(t_numeric+start.date,temp_plot,col="red",lty=2 )
+  title(main=LETTERS[4],adj=0)
+  
+  # - - 
+  # Plot basic reproduction number
+  plot(date_listSeason,plotR0_both[1,],type="l",col="white",xlab="",ylab=expression(paste(R[0]," and normalised rainfall",sep="")),xaxs="i",ylim=c(0.3,2),xlim=xRange2)
+  polygon(c(date_listSeason,rev(date_listSeason)),c(plotR0_both[2,],rev(plotR0_both[3,])),lty=0,col=rgb(0,0,0,0.2))
+  lines(date_listSeason,plotR0_both[1,],type="l",col=rgb(0,0,0),xlab="",ylab="")
+  
+  # Plot R=1 line
+  lines(c(min(date_listSeason),max(date_listSeason)),c(1,1),col="black",lty=3)
+  
+  points(weather.date,rain_actl,col=rgb(0,0,1),xaxs="i",cex=1)
   title(main=LETTERS[5],adj=0)
 
   

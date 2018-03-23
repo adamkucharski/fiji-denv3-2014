@@ -56,7 +56,7 @@ run_transmission_mcmc(MCMC.runs = 1e2) # set number of MCMC runs
 # Table 1 (in two parts). Main table uses "Table_5_params_part1_FALSE3_4" output
 for(p_pick in 1:4){
   plot_posteriors(p_pick)
-  plot_figure_2014_dengue3(p_pick,long_time=F)
+  plot_figure_2014_dengue3(p_pick,long_time=F,DoubleFit=F)
 }
 
 # Table S3 - model comparison

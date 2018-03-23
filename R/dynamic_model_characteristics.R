@@ -29,8 +29,11 @@ timeser14_All = timeser14_All[timeser14_All$date < cutt.date,]
 timeser14_Sus = timeser14_Sus[timeser14_Sus$date < cutt.date,] 
 timeser14_Sus$Central = timeser14_Sus$Central - timeser14_All$Central
 
+# Remove initial wave of DLI cases:
+timeser14_Sus[timeser14_Sus$date<"2014-01-13","Central"]=0
+
 # Set up weather fluctuation prior
-weather.data.daily = read.csv(paste("data/suva_temp_data.csv",sep=""), stringsAsFactors = F); weather.data.daily$lsd = as.Date(weather.data.daily$lsd) # Load climate data
+#weather.data.daily = read.csv(paste("data/suva_temp_data.csv",sep=""), stringsAsFactors = F); weather.data.daily$lsd = as.Date(weather.data.daily$lsd) # Load climate data
 
 weather.data = read.csv(paste("data/data_Fiji_climate.csv",sep=""), stringsAsFactors = F) # Load climate data
 temp.R0.data = read.csv(paste("data/outputTemp_R0.csv",sep=""), stringsAsFactors = F) %>% data.frame() # Load relative R0 from Mordecai
@@ -69,9 +72,9 @@ theta_fit = c(temp_amp=optim_temp[["temp_amp"]], temp_base=optim_temp[["temp_bas
 
 # Plot temperature fit (to check:
 tt_numeric = as.numeric(seq(start.date,start.date+300,1) - start.date)
-plot(tt_actual,yy_year)
-lines(tt_actual, seasonaltemp(tt_actual,theta_fit) )
-lines(tt_numeric, seasonaltemp(tt_numeric,theta_fit) )
+#plot(tt_actual,yy_year)
+#lines(tt_actual, seasonaltemp(tt_actual,theta_fit) )
+#lines(tt_numeric, seasonaltemp(tt_numeric,theta_fit) )
 
 # - - - - - 
 # Fit sine function to rainfall
@@ -101,13 +104,13 @@ theta_fitRain = c(rain_amp=optim_rain[["rain_amp"]], rain_base=optim_rain[["rain
 # Load Mordecai prior data
 
 bite_temp <- function(temp){briere(temp, 0.0002016267, 40.04363, 13.76252)} # scale to 1 bite per day average at 26C baseline
-EI_rate_temp <- function(temp){briere(temp, 6.111624e-05, 45.52661, 10.29733)/0.1103} # scale to 10 day value at 26C baseline
+EI_rate_temp <- function(temp){briere(temp, 6.111624e-05, 45.52661, 10.29733)/0.1102597} # scale to 10 day value at 26C baseline
 MD_rate_temp <- function(temp){briere(temp, 7.843086e-05, 39.10765, 11.56422)} 
 eggs_per_female_temp<- function(temp){briere(temp, 0.008154744, 34.44309,  14.78163)} 
 eggs_to_adult_temp <- function(temp){quad.2.trunc(temp, 13.58271, 38.288, -0.005985752)}
 prob_to_h_temp <- function(temp){briere.trunc(temp, 0.0008328726, 35.77916, 17.22666)}
 prob_to_v_temp <- function(temp){briere.trunc(temp, 0.0004880121, 37.38162, 12.67096)}
-mortality_rate_temp <- function(temp){ 1/(quad.2(temp, 9.023289, 37.66479, -0.143324)/28.382 ) } # scale to value at 26C baseline
+mortality_rate_temp <- function(temp){ 1/(quad.2(temp, 9.023289, 37.66479, -0.143324)/28.38242 ) } # scale to value at 26C baseline
 
 # Combined estimate of density change: eggs_per_female_temp * eggs_to_adult_temp * MD_rate_temp 
 density_vary <- function(temp){eggs_per_female_temp(temp)*eggs_to_adult_temp(temp)*MD_rate_temp(temp)/0.67275} # scale to 1 at 26C baseline
@@ -147,7 +150,7 @@ if(use.ELISA.data == T){n_Luminex_C_D3 = n_ELISA_C_D; n_Luminex_A_D3 = n_ELISA_A
 
 # - - - - - - - - 
 # Dengue priors
-var_prior <- 0.1
+var_prior <- 0.5
 var_priorBeta <- 0.1
 # from Chan et al at 25C
 prior_p_VEx <- c(10,var_prior); prior_p_Exp <- c(5.9,var_prior); prior_p_MuV <- c(14,var_prior); prior_p_Inf <- c(5,var_prior)
@@ -159,7 +162,12 @@ priorVEx<-function(x){dgamma(x,shape=prior_p_VEx[1]/(prior_p_VEx[2]), scale=prio
 priorMuV<-function(x){dgamma(x,shape=prior_p_MuV[1]/(prior_p_MuV[2]), scale=prior_p_MuV[2])} #1+0*x} #
 priorAmplitude<-function(x){dgamma(x,shape=((1-rel.temp)/(1+rel.temp))/(0.1*var_prior), scale=(0.1*var_prior))} # Have strong prior on amplitude
 priorDensity<-function(x){dgamma(x,shape=1/(var_prior), scale=(var_prior))} # Have weak prior on mosquito density
-priorBetaH2M<-function(x){1 +0*x}#dgamma(x,shape=1/(var_priorBeta), scale=(var_priorBeta))} # Have strong prior on beta
-priorBetaM2H<-function(x){1+0*x}#dgamma(x,shape=1/(var_priorBeta), scale=(var_priorBeta))} # Have strong prior on beta
+priorBetaH2M<-function(x){dgamma(x,shape=1/(var_priorBeta), scale=(var_priorBeta))} # Have strong prior on beta 1 +0*x}
+priorBetaM2H<-function(x){dgamma(x,shape=1/(var_priorBeta), scale=(var_priorBeta))} # Have strong prior on beta 1+ 0*x}#
+
+# plot(seq(0,5,0.1),priorBetaM2H(seq(0,5,0.1)))
 
 itertab <- c(1); itertabM=c(1) # Iterate over locations in set up and MCMC
+
+
+

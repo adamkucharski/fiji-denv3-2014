@@ -42,22 +42,34 @@ quad.2.trunc <- function(t, T0, Tm, qd, lim=0.0001){
 
 # - - - - - -
 # R0 matrix calculation
-calculate_r0 <- function(th_in,sus_c=1,sm_c=1,b_vary=1){
+calculate_r0 <- function(th_in,sus_c=1,sm_c=1,t_vary=1,controlT=1){
+  
+  # DEBUG   sus_c=s_pickH[cosPick]; sm_c=x_pickC[cosPick]; th_in = thetatab[b_ii,]; t_vary=time.V
+  
+  temp_t =  th_in$beta_v_mask*seasonal_f(t_vary,date0=0,theta) + (1-th_in$beta_v_mask)*26
+  
+  contact_rate = bite_temp(temp_t) * (controlT*decline_f(t_vary,date0=th_in$shift_date,th_in) +(1-controlT))
+  
+  delta_v = mortality_rate_temp(temp_t) *th_in$mu_v
+  exp_v = EI_rate_temp(temp_t)*th_in$v_exp
+    
+  # par(mfrow=c(2,1)); plot(temp_t); plot(contact_rate)
   
   # Rate humans get infected -- FORMULATION WITH ONE MOSQUITO POP AND DIFFERENT BITING RATES
-  b_hv = b_vary * th_in$beta ; b_hh = 0
+  b_hv =  prob_to_h_temp(temp_t) * th_in$beta * contact_rate * density_vary(temp_t)
+  b_hh = 0
   
   # Rate vectors get infected
-  b_vh = b_hv * th_in$beta_v 
+  b_vh = prob_to_v_temp(temp_t) * th_in$beta_v * contact_rate  
   b_vv = 0
 
-  rr_hh=rep(0,length(b_vary)); rr_vv = rr_hh;
+  rr_hh=rep(0,length(t_vary)); rr_vv = rr_hh;
   
-  rr_hv = (sus_c*b_hv/th_in$mu_v)*(th_in$v_exp/(th_in$v_exp+th_in$mu_v)) 
+  rr_hv = (sus_c*b_hv/delta_v)*(exp_v/(exp_v+delta_v)) 
   rr_vc = (sm_c*b_vh/th_in$r_inf)
 
   rr_post = NULL
-  for(ii in 1:length(b_vary)){
+  for(ii in 1:length(t_vary)){
     rr_post=c(rr_post,( max(Re(eigen(matrix(c(rr_hh[ii],rr_hv[ii],rr_vc[ii],rr_vv[ii]),nrow=2))$values)))  )
   }
   
@@ -134,6 +146,10 @@ SampleTheta<-function(theta_in, theta_init_in,m,covartheta,covartheta_init,singl
     theta_star[["repR"]]=min(theta_star[["repR"]],2-theta_star[["repR"]]) # Ensure reporting between zero and 1
   }
   
+  if(sum(names(theta_star)=="prop_at_risk")>0){ # check theta contains this vector
+    theta_star[["prop_at_risk"]]=min(theta_star[["prop_at_risk"]],2-theta_star[["prop_at_risk"]]) # Ensure reporting between zero and 1
+  }
+  
   if(sum(names(theta_star)=="beta_v_amp")>0){
     theta_star[["beta_v_amp"]]=min(theta_star[["beta_v_amp"]],2-theta_star[["beta_v_amp"]]) # Ensure amplitude between zero and 1
   }
@@ -193,8 +209,8 @@ ComputeProbability<-function(sim_likelihood,sim_likelihood_star,thetatab,theta_s
   # sim_liktab[m],sim_marg_lik_star,thetatab=thetatab[m,]; 
   
   # Include priors - Note have prior on Amplitude now as well
-  p_theta_star = priorInf(1/theta_star[["r_inf"]])*priorExp(1/theta_star[["r_exp"]])*priorVEx(1/theta_star[["v_exp"]])*priorMuV(1/theta_star[["mu_v"]])*priorDensity(theta_star[["mos_density"]])*priorBetaM2H(thetaAllstar[["beta"]]) *priorBetaH2M(theta_star[["beta_v"]]) 
-  p_theta = priorInf(1/thetatab[["r_inf"]])*priorExp(1/thetatab[["r_exp"]])*priorVEx(1/thetatab[["v_exp"]])*priorMuV(1/thetatab[["mu_v"]])*priorDensity(thetatab[["mos_density"]]) *priorBetaM2H(thetaAlltab[["beta"]]) *priorBetaH2M(thetatab[["beta_v"]]) 
+  p_theta_star = priorInf(1/theta_star[["r_inf"]])*priorExp(1/theta_star[["r_exp"]])*priorVEx(1/theta_star[["v_exp"]])*priorMuV(1/theta_star[["mu_v"]])*priorBetaM2H(thetaAllstar[["beta"]]) *priorBetaH2M(theta_star[["beta_v"]]) 
+  p_theta = priorInf(1/thetatab[["r_inf"]])*priorExp(1/thetatab[["r_exp"]])*priorVEx(1/thetatab[["v_exp"]])*priorMuV(1/thetatab[["mu_v"]])*priorBetaM2H(thetaAlltab[["beta"]]) *priorBetaH2M(thetatab[["beta_v"]]) 
 
   # Calculate acceptance probability
   val = exp((sim_likelihood_star-sim_likelihood))*(p_theta_star/p_theta)
@@ -221,7 +237,7 @@ carrying_f <- function(x,date0,theta){
   #yy = theta[["beta_v_mid"]]*(1 + theta[["beta_v_amp"]]*(seasonalrain(x,theta_fitRain)-84)/(220-84))  # Scale between 0 and 1
   #yy = theta[["beta_v_mid"]]*((seasonalrain(x,theta_fitRain)-84)/(220-84))  # Scale between 0 and 1
   #yy = yy[yy>0]
-  yy = (seasonalrain(x,theta_fitRain)-84)/(220-84)
+  yy = 1+theta[["recruit_m"]]*(seasonalrain(x,theta_fitRain)/221.2756)
   yy
 }
 
@@ -255,15 +271,15 @@ Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,y.vals2, y.vals.p
     par(mar = c(5,5,1,3),mfrow=c(2,1))
     mu1=case_count
     case_actual = (y.vals+ y.vals2)
-    plot(date_list,case_actual,xlim=c(min(date_list),xmax),pch=19,ylab="cases") #,ylim=c(0,2000) #
+    plot(date_list,case_actual,xlim=c(min(date_list),xmax),pch=19,ylab="cases",ylim=c(0,2000)) #,ylim=c(0,2000) #
     #points(date_list,y.vals2,ylim=c(0,1000),xlim=c(min(date_list),xmax))
     
     for(kk in 1:NN){
       #lines(min(date_list)+time.vals-min(time.vals),ReportC(mu1,theta,repSS = "lab",yprop = y.vals.prop),col=rgb(0,0,1,0.5))
       case_out =( ReportC(mu1,theta,repSS = "lab",yprop = y.vals.prop) + ReportC(mu1,theta,repSS = "sus",yprop = y.vals.prop) ) #%>% log()
-      #case_all =( theta[["repR"]]*mu1 )%>% log()
+      case_all =( theta[["repR"]]*mu1 )#%>% log()
       lines(min(date_list)+time.vals-min(time.vals),case_out,col=rgb(0,0.5,1,0.5))
-      #lines(min(date_list)+time.vals-min(time.vals),case_all,col=rgb(0,0,1,0.5),lty=2)
+      lines(min(date_list)+time.vals-min(time.vals),case_all,col=rgb(0,0,1,0.5),lty=2)
       
     }
     polygon(c(as.Date("2014-03-08"),as.Date("2014-03-08"),as.Date("2014-03-22"),as.Date("2014-03-22")),c(-1,1e4,1e4,-1),col=rgb(1,0,0,0.3),lty=0)
@@ -277,7 +293,6 @@ Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,y.vals2, y.vals.p
     xxmin = min(time.vals)
     xxlength = xxmax - xxmin +1
 
-    
     plot(min(date_list)+c(xxmin:xxmax) -xxmin   ,seasonal_f(c(xxmin:xxmax),date0 = theta[["shift_date"]],theta),type="l",col="red",xaxt="n",yaxt="n",xlab="",ylab="",ylim=c(20,30),xlim=c(min(date_list),xmax))
     lines(min(date_list)+c(xxmin:xxmax) -xxmin  ,sapply(c(xxmin:xxmax),function(x){20+5*decline_f(x,date0 = theta[["shift_date"]],theta)}) ,type="l",col="orange",xaxt="n",yaxt="n",xlab="",ylab="")
 
@@ -285,10 +300,16 @@ Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,y.vals2, y.vals.p
     mtext("Transmission rate", side=4, line=2,col="red",cex=1) # Label for 2nd axis
     
     # Plot susceptibles etc.
-    plot(min(date_list)+time.vals-7,output$X_traceC/theta[["npopM"]],xlim=c(min(date_list),xmax),ylim=c(0,1),type="l")
-    #lines(min(date_list)+time.vals-7,output$X_traceC/theta[["npopM"]],ylim=c(0,1),xlim=c(min(date_list),xmax),type="l",col="black",lty=2)
+    plot(min(date_list)+time.vals-7,output$X_traceA/theta[["npopM"]],xlim=c(min(date_list),xmax),ylim=c(0,2),type="l") #ylim=c(0,3)
+    lines(min(date_list)+time.vals-7,output$X_traceC/theta[["npopM"]],ylim=c(0,1),xlim=c(min(date_list),xmax),type="l",col="black",lty=2)
     lines(min(date_list)+time.vals-7,output$S_traceC/theta[["npopC"]],ylim=c(0,1),xlim=c(min(date_list),xmax),type="l",col="red")
-    lines(min(date_list)+time.vals-7,output$S_traceC/theta[["npopA"]],ylim=c(0,1),xlim=c(min(date_list),xmax),type="l",col="blue")
+    lines(min(date_list)+time.vals-7,output$S_traceA/theta[["npopA"]],ylim=c(0,1),xlim=c(min(date_list),xmax),type="l",col="red",lty=2)
+    
+    
+    
+    rr_vals = calculate_r0(theta,sus_c=(output$S_traceC+output$S_traceA)/(theta[["npopC"]]+theta[["npopA"]]),sm_c=output$X_traceC,t_vary=time.vals,controlT=1)$rr_out
+    
+    lines(min(date_list)+time.vals-7,rr_vals,ylim=c(0,1),xlim=c(min(date_list),xmax),type="l",col="blue")
     
     
     dev.copy(pdf,paste("plots/Simulate0.pdf",sep=""),width=10,height=6)
@@ -328,8 +349,10 @@ simulate_deterministic <- function(theta, init.state, times) {
     #larvae_mu <- eggs_to_adult_temp(temp_t)
     #larvae_carrying <- carrying_f(time,0,theta)
     
-    mosquito_to_human <- prob_to_h_temp(temp_t) * theta[["beta"]] * contact_rate * density_vary(temp_t) * rain_scale  # scale by density
+    mosquito_to_human <- prob_to_h_temp(temp_t) * theta[["beta"]] * contact_rate * density_vary(temp_t) * rain_scale    # scale by density * rain_scale
     human_to_mosquito <- prob_to_v_temp(temp_t) * contact_rate * theta[["beta_v"]]
+    
+    #print(c(temp_t,mosquito_to_human,human_to_mosquito))
     
     beta_h1 <- mosquito_to_human
     beta_h3 <-  beta_h1 # Vector-to-adult  transmission - same as children
@@ -339,7 +362,7 @@ simulate_deterministic <- function(theta, init.state, times) {
     NsizeA <- theta[["npopA"]]
     
     delta_v  <- mortality_rate_temp(temp_t) *theta[["mu_v"]]
-    recruit_v <-  delta_v #eggs_per_female_temp(temp_t)*eggs_to_adult_temp(temp_t)*MD_rate_temp(temp_t)/10 # delta_v
+    recruit_v <-  delta_v #theta[["recruit_m"]] #*rain_scale
     
     #recruit_v <- carrying_f(time,0,theta)
     
@@ -382,19 +405,19 @@ simulate_deterministic <- function(theta, init.state, times) {
     
     #print(alpha_v)
     
-    # Human populations-- FORMULATION WITH ONE MOSQUITO POP AND DIFFERENT BITING RATES
+    # Human populations-- FORMULATION WITH ONE MOSQUITO POP
 
-    dSC  =  - ICpos*SC*(beta_h1*IMC/Nmsize) 
-    dEC  =  ICpos*SC*(beta_h1*IMC/Nmsize) - alpha_h*EC  
+    dSC  =  - ICpos*SC*(beta_h1*IMC) 
+    dEC  =  ICpos*SC*(beta_h1*IMC) - alpha_h*EC  
     dIC  = alpha_h*EC  - gamma*IC
     dRC  = gamma*IC
     dCC  = alpha_h*EC  # - assume reported when infectious
     
-    dSA  = - IApos*SA*(beta_h3*IMC/Nmsize)     
-    dEA  =  IApos*SA*(beta_h3*IMC/Nmsize) - alpha_h*EA     
+    dSA  = - IApos*SA*(beta_h3*IMC)     
+    dEA  =  IApos*SA*(beta_h3*IMC) - alpha_h*EA     
     dIA  = alpha_h*EA  - gamma*IA
     dRA  = gamma*IA
-    dCA  = alpha_h*EA
+    dCA  = alpha_h*EA  # - assume reported when infectious
     
     # Mosquito populations -- ONLY USE ONE MOSQUITO POPULATION
     
@@ -402,8 +425,8 @@ simulate_deterministic <- function(theta, init.state, times) {
     # dSMC = delta_v - Ipos*SMC*(beta_v1*IC + beta_v3*IA)/(NsizeC + NsizeA) - delta_v*SMC
     # dEMC = Ipos*SMC*(beta_v1*IC + beta_v3*IA)/(NsizeC + NsizeA) - (delta_v+alpha_v)*EMC 
     # dIMC = alpha_v*EMC - delta_v*IMC
-    
-    dSMC = recruit_v*Nmsize - Ipos*SMC*(beta_v1*IC + beta_v3*IA)/(NsizeC + NsizeA) - delta_v*SMC  #larvae_dev*SMA 
+
+    dSMC = recruit_v - Ipos*SMC*(beta_v1*IC + beta_v3*IA)/(NsizeC + NsizeA) - delta_v*SMC  #larvae_dev*SMA 
     dEMC = Ipos*SMC*(beta_v1*IC + beta_v3*IA)/(NsizeC + NsizeA) - (delta_v+alpha_v)*EMC 
     dIMC = alpha_v*EMC - delta_v*IMC
 
@@ -445,10 +468,10 @@ Deterministic_modelR<-function(iiN,dt,theta, theta_init, y.vals, y.vals2, y.vals
   casecountA <- cases2-c(0,cases2[1:(length(sim.vals)-1)])
   
   casecount <- casecountC + casecountA
-  seroPC_1 <- theta_init[["r_initC"]]/theta[["npopC"]]
-  seroPA_1 <- theta_init[["r_initA"]]/theta[["npopA"]]
-  seroPC_2 <- tail(R_trajC,1)/theta[["npopC"]]
-  seroPA_2 <- tail(R_trajA,1)/theta[["npopA"]]
+  seroPC_1 <- (theta_init[["r_initC"]]/theta[["npopC"]]) #*theta[["prop_at_risk"]]
+  seroPA_1 <- (theta_init[["r_initA"]]/theta[["npopA"]]) #*theta[["prop_at_risk"]]
+  seroPC_2 <- (tail(R_trajC,1)/theta[["npopC"]]) #*theta[["prop_at_risk"]]
+  seroPA_2 <- (tail(R_trajA,1)/theta[["npopA"]]) #*theta[["prop_at_risk"]]
   
   # Calculate effective R and constrain to be <1
   likesero1 = (ifelse(locationI=="Central",dbinom(n_Luminex_C_D3[1], size=n_Luminex_C_D3[3], prob=seroPC_1, log = T),0) +
