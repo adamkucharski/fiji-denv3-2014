@@ -1,8 +1,8 @@
 param,Central
-beta_h,1
+beta_h,2
 beta_h_2,1
 beta_h_3,1
-beta_v,3
+beta_v,2.5
 beta_v_amp,0.1
 beta_v_mid,0.1133
 beta_v_mask,1
@@ -11,8 +11,9 @@ beta_control_grad,10
 beta_control_base,0.5
 beta_control_mask,1
 beta_control_mask2,1
-m_density,0.8
-rep,0.08
+at_risk,0.8
+recruit_m,0.5
+rep,0.05
 repA,0.05
 rep_drop,17
 repvol,0.032858647

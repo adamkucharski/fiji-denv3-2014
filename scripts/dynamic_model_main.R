@@ -33,7 +33,7 @@ source("R/dynamic_model_mcmc.R")
 # Fit model
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-use.ELISA.data = F # Fit to ELISA or MIA data
+use.ELISA.data = T # Fit to ELISA or MIA data
 exclude.p = 1 #  Subsequent weeks to skip after change from lab to DLI reporting (=2 implies skip 1 week) - DEPRECATED (BUT STILL USED)
 
 # Load relevant data

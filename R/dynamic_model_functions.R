@@ -146,8 +146,8 @@ SampleTheta<-function(theta_in, theta_init_in,m,covartheta,covartheta_init,singl
     theta_star[["repR"]]=min(theta_star[["repR"]],2-theta_star[["repR"]]) # Ensure reporting between zero and 1
   }
   
-  if(sum(names(theta_star)=="prop_at_risk")>0){ # check theta contains this vector
-    theta_star[["prop_at_risk"]]=min(theta_star[["prop_at_risk"]],2-theta_star[["prop_at_risk"]]) # Ensure reporting between zero and 1
+  if(sum(names(theta_star)=="recruit_m")>0){ # check theta contains this vector
+    theta_star[["recruit_m"]]=min(theta_star[["recruit_m"]],2-theta_star[["recruit_m"]]) # Ensure reporting between zero and 1
   }
   
   if(sum(names(theta_star)=="beta_v_amp")>0){
@@ -401,7 +401,12 @@ simulate_deterministic <- function(theta, init.state, times) {
     IApos = 1 #sigmd1(IA,1) # Need at least one infective
     Ipos = 1 #sigmd1(IC+IA,1) # Need at least one infective
     
-    Nmsize <- SMC + EMC + IMC
+    Nmsize = SMC + EMC + IMC
+    
+    # Re-normalise proportions
+    #SMC = SMC / Nmsize
+    #EMC = EMC / Nmsize
+    #IMC = IMC / Nmsize
     
     #print(alpha_v)
     

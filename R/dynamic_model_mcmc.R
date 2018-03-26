@@ -14,8 +14,8 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
   
   #multichain=c(4)
   
-  foreach(iiM=multichain) %dopar% {  # Loop over scenarios with parallel MCMC chains
-  #for(iiM in multichain){
+  #foreach(iiM=multichain) %dopar% {  # Loop over scenarios with parallel MCMC chains
+  for(iiM in multichain){
     # - - - - - - - - - - - 
     # Initialise ICs 
     
@@ -154,7 +154,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
     
     nparamA=length(thetaAll[1,])
     npcA=rep(1,nparamA)
-    pmask=c("t_start","npop","npopC","npopA","shift_date","beta_c_mask","beta_c_constrain","beta_v_mask","rep_drop","sero_lik1","sero_lik2") # ** THIS FIXES OUBTREAK-SPECIFIC PARAMETERS **
+    pmask=c("t_start","npop","npopC","npopA","npopM","shift_date","beta_c_mask","beta_c_constrain","beta_v_mask","rep_drop","sero_lik1","sero_lik2") # ** THIS FIXES OUBTREAK-SPECIFIC PARAMETERS **
     npcA[match(pmask,names(thetaAll[1,]))]=0
     cov_matrix_thetaA0 = diag(npcA)
     

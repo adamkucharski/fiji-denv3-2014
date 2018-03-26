@@ -29,7 +29,7 @@ timeser14_All = timeser14_All[timeser14_All$date < cutt.date,]
 timeser14_Sus = timeser14_Sus[timeser14_Sus$date < cutt.date,] 
 timeser14_Sus$Central = timeser14_Sus$Central - timeser14_All$Central
 
-# Remove initial wave of DLI cases:
+# Omit initial wave of DLI cases:
 timeser14_Sus[timeser14_Sus$date<"2014-01-13","Central"]=0
 
 # Set up weather fluctuation prior

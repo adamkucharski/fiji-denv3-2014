@@ -83,7 +83,7 @@ plot_posteriors<-function(p_pick=4){
       hist(thetatab$beta_c_grad[picks],xlab=expression('a'[1]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
       
       hist(thetatab$beta_c_base[picks],xlab=expression('a'[2]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
-      hist(thetatab$beta_c_mid[picks],xlab=expression('a'[3]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
+      hist(thetatab$beta_c_mid[picks],xlab=expression('a'[tau]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
       
       hist(thetatab$repR[picks],xlab="propn cases reported (lab)",main=NULL,border=colB,col=colW,prob=TRUE)
       hist(thetatab$repRA[picks],xlab="propn cases reported (DLI)",main=NULL,border=colB,col=colW,prob=TRUE)
@@ -115,7 +115,7 @@ plot_posteriors<-function(p_pick=4){
       
 
       # PLOT Parameter correlations
-      param.names = c("beta","beta_v","beta_v_amp","beta_c_grad","beta_c_base","beta_c_mid"); # beta_c_base is base level
+      param.names = c("beta","beta_v","recruit_m","beta_c_grad","beta_c_base","beta_c_mid"); # beta_c_base is base level
       param.labels = c(expression(beta[h]),expression(beta[v]),expression('a'[0]),expression('a'[1]),expression('a'[2]),expression('a'[tau]))
 
       par(mfcol=c(length(param.names),length(param.names)))
@@ -323,14 +323,14 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   
   # 
   # Set up vectors
-  # p_pick=4; simM=FALSE; Fmask=FALSE; long_time = F; DoubleFit =F
+  # p_pick = 4; simM=FALSE; Fmask=FALSE; long_time = F; DoubleFit =F
   dataP=NULL
   simM=F
   
   locnnLoop=1
 
   layout(matrix(c(1,1,2,2,1,1,2,2,3,3,4,4,3,3,5,5), 4,byrow=T) )
-  par(mgp=c(1.7,0.5,0),mar = c(3,3,1,3),mai=c(0.2,0.5,0.2,0.2))
+  par(mgp=c(1.7,0.5,0),mar = c(3,3,1,3),mai=c(0.2,0.5,0.2,0.4))
   
   labelN=1
 
@@ -407,8 +407,7 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   xSelect=(1:length(date_list))
   xSelect2= 1:tMax 
   xSelect2DROP1 = xSelect2[1:length(xSelect2)] #:(thetaAlltab[1,1,"rep_drop"])] # Adjust for pre- reporting drop
-  xSelect2DROP2 = xSelect2[(thetaAlltab[1,1,"rep_drop"]+exclude.p):length(xSelect2)] # Adjust for post- reporting missing drop
-  
+  xSelect2DROP2 = date_list>as.Date("2014-01-13")
   datacol=rgb(0.4,0.4,0.4)
   
   # PLOT TIMESERIES
@@ -429,7 +428,7 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
     polygon(c(date_list_all[xSelect2DROP1],rev(date_list_all[xSelect2DROP1])),c(ciP1_lab[xSelect2DROP1],rev(ciP2_lab[xSelect2DROP1])),lty=0,col=rgb(0,0.3,1,0.2))
     lines(date_list_all[xSelect2DROP1],medP_lab[xSelect2DROP1],type="l",col=rgb(0,0.3,1),xaxt="n",yaxt="n",xlab="",ylab="")
     
-    points(date_list,y.vals,ylim=c(0,ylimmax),pch=19,cex=1,col='black') # Lab fitted points
+    points(date_list,y.vals[date_list>"2014-01-13"],ylim=c(0,ylimmax),pch=19,cex=1,col='black') # Lab fitted points
     points(date_list,y.vals2,ylim=c(0,ylimmax),pch=1,cex=1,col='black') # DLI fitted points
   }
 
@@ -444,7 +443,7 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
     lines(date_list,y.vals+y.vals2,ylim=c(0,ylimmax),lwd=1.5,col='black') # Lab fitted points
     #points(date_list,y.vals+y.vals2,ylim=c(0,ylimmax),pch=19,cex=1,col='black') # Lab fitted points
     points(date_list,y.vals,ylim=c(0,ylimmax),pch=19,cex=1,col='black') # Lab fitted points
-    points(date_list,y.vals2,ylim=c(0,ylimmax),pch=1,cex=1,col='black') # DLI fitted points
+    points(date_list[xSelect2DROP2],y.vals2[xSelect2DROP2],ylim=c(0,ylimmax),pch=1,cex=1,col='black') # DLI fitted points in later stages
     
   }
 
@@ -623,19 +622,31 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   temp_plot = seasonaltemp(t_numeric,theta_fit)
   temp_actl = weather.data$Av_temp
   rain_actl = weather.data$Rain_av
+  rain_plot = seasonalrain(t_numeric,theta_fitRain) 
   
-  # Normalise values
+  # Normalise values?
   temp_plot = temp_plot
   temp_actl = temp_actl
-  rain_actl = rain_actl/mean(rain_actl)
+  #rain_actl = rain_actl/mean(rain_actl)
   
   plot(t_numeric+start.date,t_numeric,type="l",lty=1,col="white",xlab="",ylim=c(21,27),ylab="temperature (°C) ",lwd=0,xaxs="i",xlim=xRange2)
   #for(ii in 1:(length(weather.data$Rain_av)/12)-1){ 
   #points(weather.date+365*ii,weather.data$Av_temp,lty=1,col=rgb(1,0,0,0.3),xaxs="i",pch=1,cex=1)
   #}
   points(weather.date,temp_actl,col=rgb(1,0,0),xaxs="i",pch=19,cex=1)
-  lines(t_numeric+start.date,temp_plot,col="red",lty=2 )
+  lines(t_numeric+start.date,temp_plot,col="red",lty=1 )
   title(main=LETTERS[4],adj=0)
+  
+  points(weather.date,rain_actl,col=rgb(0,0,1),xaxs="i",cex=1)
+  
+  par(new=TRUE)
+  plot(weather.date,rain_actl,col="blue",xaxt="n",yaxt="n",xlab="",ylab="",ylim=c(0,500),xlim=xRange)
+  #points(weather.date,rain_actl,col=rgb(0,0,1),xaxs="i")
+  lines(t_numeric+start.date,rain_plot,col="blue",lty=1 )
+  axis(4,col="blue",col.axis="blue")
+  mtext("rainfall (mm)", side=4, line=1.7,col="blue",cex=0.7) # Label for 2nd axis
+  
+  
   
   # - - 
   # Plot basic reproduction number
@@ -646,7 +657,7 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   # Plot R=1 line
   lines(c(min(date_listSeason),max(date_listSeason)),c(1,1),col="black",lty=3)
   
-  points(weather.date,rain_actl,col=rgb(0,0,1),xaxs="i",cex=1)
+
   title(main=LETTERS[5],adj=0)
 
   
