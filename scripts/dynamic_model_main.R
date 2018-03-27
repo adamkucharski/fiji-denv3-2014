@@ -15,6 +15,7 @@ library(lubridate)
 library(colorspace)
 library(coda)
 library(IDPmisc)
+library(VennDiagram)
 
 rm(list=ls()) # Clear workspace
 
@@ -33,23 +34,29 @@ source("R/dynamic_model_mcmc.R")
 # Fit model
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-use.ELISA.data = T # Fit to ELISA or MIA data
-exclude.p = 1 #  Subsequent weeks to skip after change from lab to DLI reporting (=2 implies skip 1 week) - DEPRECATED (BUT STILL USED)
+serological.data = c(F)
 
-# Load relevant data
-source("R/dynamic_model_characteristics.R",local=F)
+# Fit models to two types of serological data
+for(s.type in serological.data){
 
-
-# Fit using 4 model types:
-# 1: SIR model cases  2: SIR model serology and cases  3: SIR + climate  4: SIR + climate + control
-
-run_transmission_mcmc(MCMC.runs = 1e2) # set number of MCMC runs   
+  use.ELISA.data = s.type # Fit to ELISA or MIA data
+  
+  # Fit using 4 model types:
+  # 1: SIR model cases  2: SIR model serology and cases  3: SIR + climate  4: SIR + climate + control
+  
+  run_transmission_mcmc(MCMC.runs = 1e2,use.ELISA.data) # set number of MCMC runs   
+  
+}
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # Plot figures and outputs - Before plotting, need to define: use.ELISA.data = T or F
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-    
+
+# Load relevant data
+use.ELISA.data = F # Fit to ELISA or MIA data
+source("R/dynamic_model_characteristics.R",local=F)
+
 # Compile the following:
 # Figure 5 - this uses "Figure_5_FALSE3_4.pdf" output
 # Supplementary model figures S7-S9
@@ -58,6 +65,7 @@ for(p_pick in 1:4){
   plot_posteriors(p_pick)
   plot_figure_2014_dengue3(p_pick,long_time=F,DoubleFit=F)
 }
+
 
 # Table S3 - model comparison
 model_comparison()

@@ -8,19 +8,22 @@
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # RUN MCMC Model
 
-run_transmission_mcmc <- function(MCMC.runs = 10){
+run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
 
   multichain <- c(1:4) # run in parallel
   
-  #multichain=c(4)
+  # multichain=c(3)
   
-  #foreach(iiM=multichain) %dopar% {  # Loop over scenarios with parallel MCMC chains
-  for(iiM in multichain){
+  foreach(iiM=multichain) %dopar% {  # Loop over scenarios with parallel MCMC chains
+  #for(iiM in multichain){
+    
+    # - - - - - - - - - - - 
+    # Load relevant data
+    source("R/dynamic_model_characteristics.R",local=F)
+    thetaR_IC <- read.csv(paste("data/thetaR_IC_",country.name,".csv",sep=""),stringsAsFactors=FALSE)
+    
     # - - - - - - - - - - - 
     # Initialise ICs 
-    
-    thetaR_IC <- read.csv(paste("data/thetaR_IC_",country.name,"_only_ELISA",use.ELISA.data,".csv",sep=""),stringsAsFactors=FALSE)
-    
     # Outbreak-specific parameters
     thetaAll=data.frame(beta=rep(NA,locnn),
                         beta_c_mid=rep(NA,locnn),
@@ -45,8 +48,8 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
               r_inf=1/prior_p_Inf[1], # inf (h)
               v_exp=1/prior_p_VEx[1], # latent (v) # from Chan et al at 30C
               mu_v=1/prior_p_MuV[1], # mortality rate
-              prop_at_risk = as.numeric(thetaR_IC[thetaR_IC$param=="at_risk",2]), # Deprecated
-              recruit_m=as.numeric(thetaR_IC[thetaR_IC$param=="recruit_m",2]), # mosquito recruitment
+              prop_at_risk = 1,  # proportion of population who could be infected
+              #recruit_m=as.numeric(thetaR_IC[thetaR_IC$param=="recruit_m",2]), # mosquito recruitment
               beta2=as.numeric(thetaR_IC[thetaR_IC$param=="beta_h_2",2]), # baseline after control - jointly fitted
               beta3=as.numeric(thetaR_IC[thetaR_IC$param=="beta_h_3",2]), # DEPRECATED
               beta_v=as.numeric(thetaR_IC[thetaR_IC$param=="beta_v",2]), # Relative mixing M-to-H
@@ -148,7 +151,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
     # Covariance matrices - Add theta and thetaAll together in MCMC runs
     nparam=length(theta) 
     npc=rep(1,nparam)
-    pmask=c("beta3") # ** THIS FIXES UNIVERSAL PARAMETERS ** CAN TURN OFF AGE MIXING HERE
+    pmask=c("prop_at_risk","beta3") # ** THIS FIXES UNIVERSAL PARAMETERS ** CAN TURN OFF AGE MIXING HERE
     npc[match(pmask,names(theta))]=0
     cov_matrix_theta0 = diag(npc)
     
@@ -160,7 +163,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
     
     lmv=length(theta_initAll[1,])
     npcov_init=rep(1,lmv)
-    pmaskInit=c("s_initC","e_initC","sm_initC","em_initC","s_initA","e_initA","em_initA")
+    pmaskInit=c("s_initC","e_initC","sm_initC","em_initC","s_initA","e_initA","em_initA") # ** THIS FIXES CERTAIN INTIAL CONDITIONS **
     npcov_init[match(pmaskInit,names(theta_initAll[1,]) )]=0
     cov_matrix_theta_init0 = diag(npcov_init)
     
@@ -317,7 +320,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
       
       if(m %% min(MCMC.runs,1000) == 0){
         print(c(m,accept_rate,sim_liktab[m],epsilon0))
-        save(sim_liktab,accepttab,s_trace_tabC,s_trace_tabA,c_trace_tab,r_trace_tabC,r_trace_tabA,x_trace_tabC,x_trace_tabA,thetatab,thetaAlltab,theta_initAlltab,file=paste("outputs/outputR",country.name,"_",epi.name,iiM,"_ELISA_",use.ELISA.data,exclude.p,".RData",sep=""))
+        save(sim_liktab,accepttab,s_trace_tabC,s_trace_tabA,c_trace_tab,r_trace_tabC,r_trace_tabA,x_trace_tabC,x_trace_tabA,thetatab,thetaAlltab,theta_initAlltab,file=paste("outputs/outputR",country.name,"_",epi.name,iiM,"_ELISA_",use.ELISA.data,".RData",sep=""))
       }
       
     } # End MCMC run

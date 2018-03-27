@@ -77,7 +77,7 @@ plot_posteriors<-function(p_pick=4){
       hist(thetatab$beta_v[picks],xlab=expression(beta[v]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
       curve(priorBetaM2H(x), col="red", lwd=2, add=TRUE, yaxt="n")
       
-      #hist(thetatab$beta_v_amp[picks],xlab="rainfall effect",prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
+      hist(thetatab$beta_v_amp[picks],xlab="rainfall amplitude",main=NULL,border=colB,col=colW,prob=TRUE)
       
       
       hist(thetatab$beta_c_grad[picks],xlab=expression('a'[1]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
@@ -91,7 +91,7 @@ plot_posteriors<-function(p_pick=4){
       hist(thetatab$repvol[picks],xlab="reporting dispersion",main=NULL,border=colB,col=colW,prob=TRUE)
       #hist(thetatab$repvolA[picks],xlab="reporting dispersion (2)",main=NULL,border=colB,col=colW,prob=TRUE)
 
-      hist(thetatab$recruit_m[picks],xlab="recruitment rate",main=NULL,border=colB,col=colW,prob=TRUE)
+      hist(thetatab$prop_at_risk[picks],xlab="proportion at risk",prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
       
       
       #hist(thetatab$repvol[picks],xlab=expression(phi),main=NULL,col=rgb(0.5,0.8,1),prob=TRUE)
@@ -101,7 +101,7 @@ plot_posteriors<-function(p_pick=4){
       #hist(theta_inittab$r_initA[picks],xlab=expression('R'[ha]^0),main=NULL,border=colB,col=colW,prob=TRUE)
       hist(theta_inittab$im_initC[picks],xlab=expression('I'[v]^0),main=NULL,border=colB,col=colW,prob=TRUE)
       
-      dev.copy(pdf,paste("plots/Figure_S4_posteriors_",use.ELISA.data,exclude.p,"_",p_pick,".pdf",sep=""),width=10,height=6) #,locationtab[iiH],
+      dev.copy(pdf,paste("plots/Figure_S4_posteriors_",use.ELISA.data,"_",p_pick,".pdf",sep=""),width=10,height=6) #,locationtab[iiH],
       dev.off()
       
       # Output theta for future runs
@@ -115,7 +115,7 @@ plot_posteriors<-function(p_pick=4){
       
 
       # PLOT Parameter correlations
-      param.names = c("beta","beta_v","recruit_m","beta_c_grad","beta_c_base","beta_c_mid"); # beta_c_base is base level
+      param.names = c("beta","beta_v","beta_v_amp","beta_c_grad","beta_c_base","beta_c_mid"); # beta_c_base is base level
       param.labels = c(expression(beta[h]),expression(beta[v]),expression('a'[0]),expression('a'[1]),expression('a'[2]),expression('a'[tau]))
 
       par(mfcol=c(length(param.names),length(param.names)))
@@ -142,7 +142,7 @@ plot_posteriors<-function(p_pick=4){
           }
         }
         
-      dev.copy(png,paste("plots/Figure_S5_correlations",use.ELISA.data,exclude.p,"_",p_pick,".png",sep=""),units="cm",width=20,height=20,res=200)
+      dev.copy(png,paste("plots/Figure_S5_correlations",use.ELISA.data,"_",p_pick,".png",sep=""),units="cm",width=20,height=20,res=200)
       dev.off()
 
       # Compile beta matrix. Structure:  beta; 0.5 * beta * beta2  ; 0.5 * beta
@@ -184,7 +184,7 @@ plot_posteriors<-function(p_pick=4){
 
     }
   
-  write.csv(t(paramA),paste("plots/Table_5_params_part1_",use.ELISA.data,exclude.p,"_",p_pick,".csv",sep=""))
+  write.csv(t(paramA),paste("plots/Table_5_params_part1_",use.ELISA.data,"_",p_pick,".csv",sep=""))
 
 }
 
@@ -311,7 +311,7 @@ model_comparison <- function( compareN = c(2:4) ){
   aic.comp = aic.tab - min(aic.tab)
   dic.comp = dic.tab - min(dic.tab)
   name.models = c("SEIR","SEIR_climate","SEIR_climate_control") #,"SEIR_post","SEIR_climate_post","SEIR_climate_control_post")
-  write.csv( cbind(name.models,signif(cbind(lik.tab,aic.tab,aic.comp,dic.tab,dic.comp),4)) ,paste("plots/Table_S3_DIC_table",use.ELISA.data,exclude.p,".csv",sep=""))
+  write.csv( cbind(name.models,signif(cbind(lik.tab,aic.tab,aic.comp,dic.tab,dic.comp),4)) ,paste("plots/Table_S3_DIC_table",use.ELISA.data,".csv",sep=""))
   
 }
 
@@ -362,8 +362,8 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
     cvector[ii,]= ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="sus",y.vals.prop) #+ ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="lab",y.vals.prop) # Edit for both datasets
     cvector_lab[ii,]= ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="lab",y.vals.prop) #+ ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="lab",y.vals.prop) # Edit for both datasets
     cvectorALL[ii,]= ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="sus",y.vals.prop) + ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="lab",y.vals.prop)
-    svectorC[ii,]= r_trace_tabC[pick,1:tMax]/thetatab[pick,]$npopC # Proportion immune C thetatab[pick,"prop_at_risk"]*
-    svectorA[ii,]= r_trace_tabA[pick,1:tMax]/thetatab[pick,]$npopA # Proportion immune A
+    svectorC[ii,]= thetatab[pick,"prop_at_risk"]*r_trace_tabC[pick,1:tMax]/thetatab[pick,]$npopC # Proportion immune C 
+    svectorA[ii,]= thetatab[pick,"prop_at_risk"]*r_trace_tabA[pick,1:tMax]/thetatab[pick,]$npopA # Proportion immune A
   }
   
   medP=apply(cvector,2,function(x){median(x)})
@@ -576,7 +576,7 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
     paste(reduceProp[1]," (",reduceProp[3],"-",reduceProp[2],")",sep=""), # control reduction
     c.text(plotRCVstore), # R to H
     c.text(plotRVCstore) # R to V
-    )),paste("plots/Table_5_params_part2_",use.ELISA.data,exclude.p,"_",p_pick,".csv",sep=""))
+    )),paste("plots/Table_5_params_part2_",use.ELISA.data,"_",p_pick,".csv",sep=""))
 
 
   # - - 
@@ -661,7 +661,7 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   title(main=LETTERS[5],adj=0)
 
   
-  dev.copy(pdf,paste("plots/Figure_5_",use.ELISA.data,exclude.p,"_",p_pick,".pdf",sep=""),width=8,height=6)#,height=8)
+  dev.copy(pdf,paste("plots/Figure_5_",use.ELISA.data,"_",p_pick,".pdf",sep=""),width=8,height=6)#,height=8)
   dev.off()
 
   

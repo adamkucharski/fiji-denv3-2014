@@ -146,8 +146,12 @@ SampleTheta<-function(theta_in, theta_init_in,m,covartheta,covartheta_init,singl
     theta_star[["repR"]]=min(theta_star[["repR"]],2-theta_star[["repR"]]) # Ensure reporting between zero and 1
   }
   
-  if(sum(names(theta_star)=="recruit_m")>0){ # check theta contains this vector
-    theta_star[["recruit_m"]]=min(theta_star[["recruit_m"]],2-theta_star[["recruit_m"]]) # Ensure reporting between zero and 1
+  # if(sum(names(theta_star)=="recruit_m")>0){ # check theta contains this vector
+  #   theta_star[["recruit_m"]]=min(theta_star[["recruit_m"]],2-theta_star[["recruit_m"]]) # Ensure seasonality between zero and 1
+  # }
+  
+  if(sum(names(theta_star)=="prop_at_risk")>0){ # check theta contains this vector
+    theta_star[["prop_at_risk"]]=min(theta_star[["prop_at_risk"]],2-theta_star[["prop_at_risk"]]) # Ensure at risk group between zero and 1
   }
   
   if(sum(names(theta_star)=="beta_v_amp")>0){
@@ -206,11 +210,11 @@ SampleTheta<-function(theta_in, theta_init_in,m,covartheta,covartheta_init,singl
 
 ComputeProbability<-function(sim_likelihood,sim_likelihood_star,thetatab,theta_star,thetaItab,theta_Istar,thetaAllstar,thetaAlltab,itertab,c_case_ratioStar,c_case_ratioTab){
   
-  # sim_liktab[m],sim_marg_lik_star,thetatab=thetatab[m,]; 
+  # sim_likelihood=sim_liktab[m]; sim_likelihood_star=sim_marg_lik_star; thetatab=thetatab[m,]; 
   
   # Include priors - Note have prior on Amplitude now as well
-  p_theta_star = priorInf(1/theta_star[["r_inf"]])*priorExp(1/theta_star[["r_exp"]])*priorVEx(1/theta_star[["v_exp"]])*priorMuV(1/theta_star[["mu_v"]])*priorBetaM2H(thetaAllstar[["beta"]]) *priorBetaH2M(theta_star[["beta_v"]]) 
-  p_theta = priorInf(1/thetatab[["r_inf"]])*priorExp(1/thetatab[["r_exp"]])*priorVEx(1/thetatab[["v_exp"]])*priorMuV(1/thetatab[["mu_v"]])*priorBetaM2H(thetaAlltab[["beta"]]) *priorBetaH2M(thetatab[["beta_v"]]) 
+  p_theta_star = priorInf(1/theta_star[["r_inf"]])*priorExp(1/theta_star[["r_exp"]])*priorVEx(1/theta_star[["v_exp"]])*priorMuV(1/theta_star[["mu_v"]])*priorBetaM2H(thetaAllstar[["beta"]]) *priorBetaH2M(theta_star[["beta_v"]])*priorAtRisk(theta_star[["prop_at_risk"]]) 
+  p_theta = priorInf(1/thetatab[["r_inf"]])*priorExp(1/thetatab[["r_exp"]])*priorVEx(1/thetatab[["v_exp"]])*priorMuV(1/thetatab[["mu_v"]])*priorBetaM2H(thetaAlltab[["beta"]]) *priorBetaH2M(thetatab[["beta_v"]]) *priorAtRisk(thetatab[["prop_at_risk"]]) 
 
   # Calculate acceptance probability
   val = exp((sim_likelihood_star-sim_likelihood))*(p_theta_star/p_theta)
@@ -237,7 +241,7 @@ carrying_f <- function(x,date0,theta){
   #yy = theta[["beta_v_mid"]]*(1 + theta[["beta_v_amp"]]*(seasonalrain(x,theta_fitRain)-84)/(220-84))  # Scale between 0 and 1
   #yy = theta[["beta_v_mid"]]*((seasonalrain(x,theta_fitRain)-84)/(220-84))  # Scale between 0 and 1
   #yy = yy[yy>0]
-  yy = 1+theta[["recruit_m"]]*(seasonalrain(x,theta_fitRain)/221.2756)
+  yy = 1+theta[["beta_v_amp"]]*(seasonalrain(x,theta_fitRain)/221.2756)
   yy
 }
 
@@ -302,8 +306,8 @@ Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,y.vals2, y.vals.p
     # Plot susceptibles etc.
     plot(min(date_list)+time.vals-7,output$X_traceA/theta[["npopM"]],xlim=c(min(date_list),xmax),ylim=c(0,2),type="l") #ylim=c(0,3)
     lines(min(date_list)+time.vals-7,output$X_traceC/theta[["npopM"]],ylim=c(0,1),xlim=c(min(date_list),xmax),type="l",col="black",lty=2)
-    lines(min(date_list)+time.vals-7,output$S_traceC/theta[["npopC"]],ylim=c(0,1),xlim=c(min(date_list),xmax),type="l",col="red")
-    lines(min(date_list)+time.vals-7,output$S_traceA/theta[["npopA"]],ylim=c(0,1),xlim=c(min(date_list),xmax),type="l",col="red",lty=2)
+    lines(min(date_list)+time.vals-7,theta[["prop_at_risk"]]*(1-output$S_traceC/theta[["npopC"]]),ylim=c(0,1),xlim=c(min(date_list),xmax),type="l",col="red")
+    lines(min(date_list)+time.vals-7,theta[["prop_at_risk"]]*(1-output$S_traceA/theta[["npopA"]]),ylim=c(0,1),xlim=c(min(date_list),xmax),type="l",col="red",lty=2)
     
     
     
@@ -473,10 +477,10 @@ Deterministic_modelR<-function(iiN,dt,theta, theta_init, y.vals, y.vals2, y.vals
   casecountA <- cases2-c(0,cases2[1:(length(sim.vals)-1)])
   
   casecount <- casecountC + casecountA
-  seroPC_1 <- (theta_init[["r_initC"]]/theta[["npopC"]]) #*theta[["prop_at_risk"]]
-  seroPA_1 <- (theta_init[["r_initA"]]/theta[["npopA"]]) #*theta[["prop_at_risk"]]
-  seroPC_2 <- (tail(R_trajC,1)/theta[["npopC"]]) #*theta[["prop_at_risk"]]
-  seroPA_2 <- (tail(R_trajA,1)/theta[["npopA"]]) #*theta[["prop_at_risk"]]
+  seroPC_1 <- (theta_init[["r_initC"]]/theta[["npopC"]]) *theta[["prop_at_risk"]]
+  seroPA_1 <- (theta_init[["r_initA"]]/theta[["npopA"]]) *theta[["prop_at_risk"]]
+  seroPC_2 <- (tail(R_trajC,1)/theta[["npopC"]]) *theta[["prop_at_risk"]]
+  seroPA_2 <- (tail(R_trajA,1)/theta[["npopA"]]) *theta[["prop_at_risk"]]
   
   # Calculate effective R and constrain to be <1
   likesero1 = (ifelse(locationI=="Central",dbinom(n_Luminex_C_D3[1], size=n_Luminex_C_D3[3], prob=seroPC_1, log = T),0) +

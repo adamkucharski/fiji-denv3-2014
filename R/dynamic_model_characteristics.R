@@ -165,6 +165,8 @@ priorDensity<-function(x){dgamma(x,shape=1/(var_prior), scale=(var_prior))} # Ha
 priorBetaH2M<-function(x){dgamma(x,shape=1/(var_priorBeta), scale=(var_priorBeta))} # Have strong prior on beta 1 +0*x}
 priorBetaM2H<-function(x){dgamma(x,shape=1/(var_priorBeta), scale=(var_priorBeta))} # Have strong prior on beta 1+ 0*x}#
 
+priorAtRisk<-function(x){ifelse(x>0.8,1,0)} # Have strong prior on beta 1+ 0*x}#
+
 # plot(seq(0,5,0.1),priorBetaM2H(seq(0,5,0.1)))
 
 itertab <- c(1); itertabM=c(1) # Iterate over locations in set up and MCMC

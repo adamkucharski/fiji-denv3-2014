@@ -8,7 +8,7 @@ r_trace_tab0_A=NULL
 x_trace_tab0_C=NULL
 x_trace_tab0_A=NULL
 
-load(paste("outputs/outputR",country.name,"_",epi.name,pick_posterior,"_ELISA_",use.ELISA.data,exclude.p,".RData",sep=""))
+load(paste("outputs/outputR",country.name,"_",epi.name,pick_posterior,"_ELISA_",use.ELISA.data,".RData",sep=""))
 
 thetatab=cbind(data.frame(thetatab),data.frame(thetaAlltab[,iiH,]))
 theta_inittab=data.frame(theta_initAlltab[,iiH,])

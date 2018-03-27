@@ -26,21 +26,30 @@ binom_output <- function(xx,nn){
 # Regression model for clusters with Luminex data - MAIN SET UP CODE
 # - - - - - - - - - - - - - - - - - - - - 
 
-fit_ELISA <- function(){
+fit_ELISA <- function(ELISA.fit = T, plot_venn=F){
   inputs =   data.frame(read.csv("data/serology_inputs.csv",stringsAsFactors = F))
 
   # - - - - - - - - -
   # Plot change in serology with mixture model
   
-  change.titre = inputs$ELISA2-inputs$ELISA1
-  change.titre = change.titre[change.titre>-7] # Remove outliers
-  
+  if(ELISA.fit ==T){
+    change.titre = inputs$ELISA2-inputs$ELISA1
+    change.titre = change.titre[change.titre > -9] # Remove outliers
+  }else{
+    denv3.mia.1 = inputs$DENV3/1000 
+    denv3.mia.2 = inputs$DENV3B/1000
+    change.titre = denv3.mia.2 - denv3.mia.1
+    change.titre = change.titre[change.titre>-5] # Remove outliers
+    denv3.neut.1 = inputs$D3s13; denv3.neut.1 = denv3.neut.1[!is.na(denv3.neut.1)] #inputs[,c("D1s13","D2s13","D3s13","D4s13")]
+    denv3.neut.2 = inputs$D3s15; denv3.neut.2 = denv3.neut.2[!is.na(denv3.neut.2)] #inputs[,c("D1s15","D2s15","D3s15","D4s15")]
+  }
+
   param = c(a0 = 0, b0=1, a1=2, b1=3, lambda1 = 1)
   result2 = optim(param, fitmixture2, method="L-BFGS-B", val=change.titre,lower=c(rep(0,4),-10), hessian=FALSE) #, control=list(trace=1))
   
   parfit = result2$par #param #
   
-  # 2 mixture pick
+  # Fit 2 mixture model
   
   x.titre = seq(-10,30,1)
   y.error = (1-transform.lambda(parfit[["lambda1"]]))*dnorm(x.titre, mean = 0, sd = parfit[["b0"]])
@@ -50,35 +59,180 @@ fit_ELISA <- function(){
   p.signal = (y.signl1+y.signl2)/(y.error+y.signl1+y.signl2)
   inputsFit = inputs
   titre.weights = sapply(inputsFit$RiseT,function(x){ p.signal[match(x,x.titre)]   })
-  
 
-  # << Run up to here to set up for remaining files << <<
-  
+  # << Need to here to set up for remaining files << <<
 
   # Calculate R.squared of fits
-  xx <- seq(-10,20,0.1)
-  all.model = transform.lambda(parfit[["lambda1"]])*dgamma(xx, shape = parfit[["a1"]], scale = parfit[["b1"]]) + (1-transform.lambda(parfit[["lambda1"]]))*dnorm(xx, mean = 0, sd = parfit[["b0"]])
-  x.vals = names(table(change.titre)) %>% as.numeric()
-  
-  y.modl = all.model[match(x.vals,xx)]
-  y.vals = as.numeric(table(change.titre)); y.tot=sum(y.vals); y.valsN=y.vals/y.tot
-  r.square = 1-(sum((y.valsN-y.modl )^2)/sum((y.valsN-mean(y.valsN))^2))
+  if(ELISA.fit ==T){
+    xx <- seq(-10,20,0.1)
+    all.model = transform.lambda(parfit[["lambda1"]])*dgamma(xx, shape = parfit[["a1"]], scale = parfit[["b1"]]) + (1-transform.lambda(parfit[["lambda1"]]))*dnorm(xx, mean = 0, sd = parfit[["b0"]])
+    x.vals = names(table(change.titre)) %>% as.numeric()
+    
+    y.modl = all.model[match(x.vals,xx)]
+    y.vals = as.numeric(table(change.titre)); y.tot=sum(y.vals); y.valsN=y.vals/y.tot
+    r.square = 1-(sum((y.valsN-y.modl )^2)/sum((y.valsN-mean(y.valsN))^2))
+  }else{
+    xx <- seq(-10,20,0.1)
+    all.model = transform.lambda(parfit[["lambda1"]])*dgamma(xx, shape = parfit[["a1"]], scale = parfit[["b1"]]) + (1-transform.lambda(parfit[["lambda1"]]))*dnorm(xx, mean = 0, sd = parfit[["b0"]])
+    x.vals = names(table(round(change.titre,0))) %>% as.numeric()
+    
+    y.modl = all.model[match(x.vals,xx)]
+    y.vals = as.numeric(table(round(change.titre,0))); y.tot=sum(y.vals); y.valsN=y.vals/y.tot
+    r.square = 1-(sum((y.valsN-y.modl )^2)/sum((y.valsN-mean(y.valsN))^2))
+    
+    # - - - - - 
+    # Plot MIA and neut data
+    par(mfrow=c(1,2),mar=c(3,3,1,1),mgp=c(1.7,0.5,0))
+    
+    # Plot Neut distribution
+    
+    # Put data on log scale
+    denv3.neut.1.plot = denv3.neut.1; denv3.neut.1.plot[denv3.neut.1.plot==0]=5; denv3.neut.1.plot = log(as.numeric(denv3.neut.1.plot)/5,2)
+    denv3.neut.2.plot = denv3.neut.2; denv3.neut.2.plot[denv3.neut.2.plot==0]=5; denv3.neut.2.plot = log(as.numeric(denv3.neut.2.plot)/5,2)
 
+    hist(denv3.neut.1.plot,breaks=seq(-0.5,6.5,1),border="white",ylim=c(0,26),main="",xlab="DENV-3 neutralisation titre",xaxt="n",col=rgb(1,0.5,0,1),yaxs="i",ylab="number of samples")
+    hist(denv3.neut.2.plot,freq=T,breaks=seq(-0.5,6.5,1),add=T,border="white",col=rgb(0,0,1,0.5))
+    lines(c(1.5,1.5),c(0,100),lty=2)
+    axis(1, at=c(0:8), labels=c(0,5*2^c(1:8)))
+    title(adj=0,main=LETTERS[1])
+
+    # Plot MIA distribution
+    hist(denv3.mia.1*1000,freq=T,breaks=seq(-2000,26000,1000),col=rgb(1,0.5,0,1),border="white",main="",xlab="DENV-3 MIA value",ylab="number of samples",xlim=c(-2000,26000),xaxs="i",yaxs="i")
+    hist(denv3.mia.2*1000,freq=T,breaks=seq(-2000,26000,1000),add=T,border="white",col=rgb(0,0,1,0.5))
+    title(adj=0,main=LETTERS[2])
+    
+    txtSize=1
+    text(x=1e4,y=40,adj=0,labels="2013",col=rgb(1,0.5,0),cex=txtSize)
+    text(x=1e4,y=32,adj=0,labels="2015",col=rgb(0,0,1),cex=txtSize)
+    
+    dev.copy(pdf,paste("plots/Figure_S2_MIA_analysis.pdf",sep=""),width=8,height=4,useDingbats=FALSE)
+    dev.off()
+    
+  }
+
+  print(c("R2",r.square))
   
-  # - - - 
+  if(ELISA.fit==F){return()}
+  
+  # - - - - - - - - - - - - - 
   # Calculate Kappa between seropositive Luminex and ELISA
   countEL = inputs; countEL$DconvertM = titre.weights
-  countEL$Dconvert = as.numeric(countEL$L1)==0 & as.numeric(countEL$L2)==1 # Luminex convert
-  countEL = countEL[!is.na(inputs$DENV1P),]
-  comp.1 = c(countEL$sero1,countEL$sero2); comp.2 = c(as.numeric(countEL$L1),as.numeric(countEL$L2))
-  kappa2(cbind(comp.1,comp.2), "unweighted")
+  countEL$sero1 = (countEL$ELISA1>=11) %>% as.numeric() # compare cutoff
+  countEL$sero2 = (countEL$ELISA2>=11) %>% as.numeric() # compare cutoff
   
-  # accuracy
-  ( sum(comp.1==1 & comp.2==1) +  sum(comp.1==0 & comp.2==0) )/length(comp.1)
+  # At least one MIA positive
+  L1_positive = (rowSums(countEL[,c("DENV1P","DENV2P","DENV3P","DENV4P")])>0) %>% as.numeric()
+  L2_positive = (rowSums(countEL[,c("DENV1BP","DENV2BP","DENV3BP","DENV4BP")])>0) %>% as.numeric()
+
+  comp.1 = c(countEL$sero1,countEL$sero2); comp.2 = c(as.numeric(L1_positive),as.numeric(L1_positive))
   
+  k_outEL = kappa2(cbind(comp.1,comp.2), "unweighted")  # Cohen's kappa
+  k_accEL = ( sum(comp.1==1 & comp.2==1) +  sum(comp.1==0 & comp.2==0) )/length(comp.1)  # Accuracy
+  
+  # - - - - - - - - - - - - - 
+  # Calculate Kappa between neutralisation and MIA for DENV-3
+  countNL = inputs[!is.na(inputs$D3s15),];
+  
+  # At least one Luminex
+  L1_positive_3 = ((countNL[,c("DENV3P")])>0) %>% as.numeric(); L2_positive_3 = ((countNL[,c("DENV3BP")])>0) %>% as.numeric()
+  N1_positive_3 = (countNL$D3s13>=20) %>% as.numeric(); N2_positive_3 = (countNL$D3s15>=20) %>% as.numeric()
+
+  comp.1N = c(N1_positive_3,N2_positive_3); comp.2N = c(as.numeric(L1_positive_3),as.numeric(L2_positive_3))
+
+  k_outNL3 = kappa2(cbind(comp.1N,comp.2N), "unweighted")  # Cohen's kappa
+  k_accNL3 = ( sum(comp.1N==1 & comp.2N==1) +  sum(comp.1N==0 & comp.2N==0) )/length(comp.1N)  # Accuracy
+  
+  # - - - - - - - - - - - - - 
+  # Calculate Kappa between neutralisation, MIA and ELISA for Any dengue
+  
+  # At least one Luminex
+  L1_positive_NT = (rowSums(countNL[,c("DENV1P","DENV2P","DENV3P","DENV4P")])>0) %>% as.numeric()
+  L2_positive_NT = (rowSums(countNL[,c("DENV1BP","DENV2BP","DENV3BP","DENV4BP")])>0) %>% as.numeric()
+
+  N1_positive_Any = (rowSums(countNL[,c("D1s13","D2s13","D3s13","D4s13")]>=20)>0) %>% as.numeric()
+  N2_positive_Any = (rowSums(countNL[,c("D1s15","D2s15","D3s15","D4s15")]>=20)>0) %>% as.numeric()
+  
+  E1_positive_Any = (countNL$sero1==1) %>% as.numeric()
+  E2_positive_Any = (countNL$sero2==1) %>% as.numeric()
+  
+  comp.1Any = c(N1_positive_Any,N2_positive_Any); comp.2Any = c(as.numeric(L1_positive_NT),as.numeric(L2_positive_NT)); comp.3Any = c(as.numeric(E1_positive_Any),as.numeric(E2_positive_Any))
+  
+  k_out_MN = kappa2(cbind(comp.1Any,comp.2Any), "unweighted")  # Cohen's kappa
+  k_acc_MN = ( sum(comp.1Any==1 & comp.2Any==1) +  sum(comp.1Any==0 & comp.2Any==0) )/length(comp.1Any)  # Accuracy
+  # k_outNL2 = kappa2(cbind(comp.1Any,comp.3Any), "unweighted")  # Cohen's kappa
+  # k_accNL2 = ( sum(comp.1Any==1 & comp.3Any==1) +  sum(comp.1Any==0 & comp.3Any==0) )/length(comp.1Any)  # Accuracy
+  k_out_ME = kappa2(cbind(comp.2Any,comp.3Any), "unweighted")  # Cohen's kappa
+  k_acc_ME = ( sum(comp.2Any==1 & comp.3Any==1) +  sum(comp.2Any==0 & comp.3Any==0) )/length(comp.1Any)  # Accuracy
+  
+  # Create table of comparisons
+  tab_kappa = rbind(
+    c(paste(round(k_accEL,2)," (",round(k_outEL$value,2),")",sep=""),paste(round(k_acc_ME,2)," (",round(k_out_ME$value,2),")",sep=""),"-"), # ELISA
+    c("-",paste(round(k_acc_MN,2)," (",round(k_out_MN$value,2),")",sep=""),"-"), # MIA any
+    #c("-","-","-",paste(round(k_acc_MN,2)," (",round(k_out_MN$value,2),")",sep=""),"-"), # Neut Any
+    c("-","-",paste(round(k_accNL3,2)," (",round(k_outNL3$value,2),")",sep="")) # MIA D3
+    #c("-","-","-")  # Neut D3
+  )
+  
+  colnames(tab_kappa) = c("MIA any DENV","Neut any DENV","Neut DENV-3")
+  rownames(tab_kappa) = c("ELISA","MIA any DENV","MIA DENV-3")
+  
+  write.csv( tab_kappa,"plots/Kappa_compare.csv",row.names = T)
+  
+  
+  
+  # - - -
+  # Plot combination of exposures
+  if(plot_venn==T){
+    d1 <- draw.quad.venn(sum(countEL$DENV1P==1), 
+                         sum(countEL$DENV2P==1), 
+                         sum(countEL$DENV3P==1), 
+                         sum(countEL$DENV4P==1), 
+                         sum(countEL$DENV1P==1 & countEL$DENV2P==1), #n12 
+                         sum(countEL$DENV1P==1 & countEL$DENV3P==1), #n13 
+                         sum(countEL$DENV1P==1 & countEL$DENV4P==1), #n14 
+                         sum(countEL$DENV2P==1 & countEL$DENV3P==1), #n23 
+                         sum(countEL$DENV2P==1 & countEL$DENV4P==1), #n24 
+                         sum(countEL$DENV3P==1 & countEL$DENV4P==1), #n34 
+                         sum(countEL$DENV1P==1 & countEL$DENV2P==1 & countEL$DENV3P==1), #n123
+                         sum(countEL$DENV1P==1 & countEL$DENV2P==1 & countEL$DENV4P==1), #n124 
+                         sum(countEL$DENV1P==1 & countEL$DENV3P==1 & countEL$DENV4P==1), #n134
+                         sum(countEL$DENV2P==1 & countEL$DENV3P==1 & countEL$DENV4P==1), #n234
+                         sum(countEL$DENV1P==1 & countEL$DENV2P==1 & countEL$DENV3P==1 & countEL$DENV4P==1),  #n1234
+                         ind=F, category=c("DENV-1","DENV-2","DENV-3","DENV-4"),fontfamily="Arial",cat.fontfamily="Arial")
+    
+    tiff(filename = "plots/Figure_combination2013.tiff", compression = "lzw",width = 600, height = 700)
+    print(grid.draw(d1))
+    dev.off()
+    
+    d1 <- draw.quad.venn(sum(countEL$DENV1BP==1), 
+                         sum(countEL$DENV2BP==1), 
+                         sum(countEL$DENV3BP==1), 
+                         sum(countEL$DENV4BP==1), 
+                         sum(countEL$DENV1BP==1 & countEL$DENV2BP==1), #n12 
+                         sum(countEL$DENV1BP==1 & countEL$DENV3BP==1), #n13 
+                         sum(countEL$DENV1BP==1 & countEL$DENV4BP==1), #n14 
+                         sum(countEL$DENV2BP==1 & countEL$DENV3BP==1), #n23 
+                         sum(countEL$DENV2BP==1 & countEL$DENV4BP==1), #n24 
+                         sum(countEL$DENV3BP==1 & countEL$DENV4BP==1), #n34 
+                         sum(countEL$DENV1BP==1 & countEL$DENV2BP==1 & countEL$DENV3BP==1), #n123
+                         sum(countEL$DENV1BP==1 & countEL$DENV2BP==1 & countEL$DENV4BP==1), #n124 
+                         sum(countEL$DENV1BP==1 & countEL$DENV3BP==1 & countEL$DENV4BP==1), #n134
+                         sum(countEL$DENV2BP==1 & countEL$DENV3BP==1 & countEL$DENV4BP==1), #n234
+                         sum(countEL$DENV1BP==1 & countEL$DENV2BP==1 & countEL$DENV3BP==1 & countEL$DENV4BP==1),  #n1234
+                         ind=F, category=c("DENV-1","DENV-2","DENV-3","DENV-4"),fontfamily="Arial",cat.fontfamily="Arial")
+    
+    tiff(filename = "plots/Figure_combination2015.tiff", compression = "lzw",width = 600, height = 700)
+    print(grid.draw(d1))
+    dev.off()
+  }
+  
+  #- - 
   # Calculate proportion of each Luminex type
+  
   outputLum = rbind( c(inputs$sero1 %>% sum() ,
                        inputs$sero2 %>% sum() ,length(inputs$sero2)),
+                     c(L1_positive %>% sum() ,
+                       L2_positive %>% sum() ,length(inputs$sero2)),
                         c(countEL[,"DENV1P"] %>% as.numeric() %>% sum() ,
                        countEL[,"DENV1BP"] %>% as.numeric() %>% sum() ,length(countEL[,"DENV1BP"])),
                      c(countEL[,"DENV2P"] %>% as.numeric() %>% sum() ,
@@ -89,14 +243,15 @@ fit_ELISA <- function(){
                        countEL[,"DENV4BP"] %>% as.numeric() %>% sum() ,length(countEL[,"DENV1BP"]))
   )
   
-  EL.2013 = c(binom.calc(outputLum[1,1],outputLum[1,3]),binom.calc(outputLum[2,1],outputLum[1,3]),binom.calc(outputLum[3,1],outputLum[1,3]),binom.calc(outputLum[4,1],outputLum[1,3]),binom.calc(outputLum[5,1],outputLum[5,3]))
-  EL.2015 = c(binom.calc(outputLum[1,2],outputLum[1,3]),binom.calc(outputLum[2,2],outputLum[1,3]),binom.calc(outputLum[3,2],outputLum[1,3]),binom.calc(outputLum[4,2],outputLum[1,3]),binom.calc(outputLum[5,2],outputLum[5,3]))
-  EL.difference = c(binom.calc(outputLum[1,2]-outputLum[1,1],outputLum[1,3]),binom.calc(outputLum[2,2]-outputLum[2,1],outputLum[1,3]),binom.calc(outputLum[3,2]-outputLum[3,1],outputLum[1,3]),binom.calc(outputLum[4,2]-outputLum[4,1],outputLum[1,3]),binom.calc(outputLum[5,2]-outputLum[5,1],outputLum[5,3]))
+  EL.2013 = c(binom.calc(outputLum[1,1],outputLum[1,3]),binom.calc(outputLum[2,1],outputLum[1,3]),binom.calc(outputLum[3,1],outputLum[1,3]),binom.calc(outputLum[4,1],outputLum[1,3]),binom.calc(outputLum[5,1],outputLum[5,3]),binom.calc(outputLum[6,1],outputLum[6,3]))
+  EL.2015 = c(binom.calc(outputLum[1,2],outputLum[1,3]),binom.calc(outputLum[2,2],outputLum[1,3]),binom.calc(outputLum[3,2],outputLum[1,3]),binom.calc(outputLum[4,2],outputLum[1,3]),binom.calc(outputLum[5,2],outputLum[5,3]),binom.calc(outputLum[6,2],outputLum[6,3]))
+  
+  EL.difference = c(binom.calc(outputLum[1,2]-outputLum[1,1],outputLum[1,3]),binom.calc(outputLum[2,2]-outputLum[2,1],outputLum[1,3]),binom.calc(outputLum[3,2]-outputLum[3,1],outputLum[1,3]),binom.calc(outputLum[4,2]-outputLum[4,1],outputLum[1,3]),binom.calc(outputLum[5,2]-outputLum[5,1],outputLum[5,3]),binom.calc(outputLum[6,2]-outputLum[6,1],outputLum[6,3]))
   
   outputLum=cbind(outputLum,EL.2013,EL.2015,EL.difference
                   )
   
-  colnames(outputLum) = c("2013","2015","N","2013pc","2015pc","increase"); rownames(outputLum) = c("ELISA","DENV-1","DENV-2","DENV-3","DENV-4")
+  colnames(outputLum) = c("2013","2015","N","2013pc","2015pc","increase"); rownames(outputLum) = c("ELISA","MIA any DENV","MIA DENV-1","MIA DENV-2","MIA DENV-3","MIA DENV-4")
   write.csv(outputLum,"plots/Table_2_seroprevalence.csv",row.names = T)
   
   list(tabinput = inputs,titrechange = titre.weights)
@@ -119,29 +274,6 @@ fitmixture2<-function(param, val) {
   )
 }
 
-fitmixture3<-function(param, val) {
-  lambda1 = transform.lambda(param[["lambda1"]]) # constrain to be 0<.<1
-  lambda2 = transform.lambda(param[["lambda2"]]) # constrain to be 0<.<1
-  return(
-    # likelihood function
-    - sum(log(
-      lambda1 * dgamma(val, shape = abs(param[["a1"]]), scale = abs(param[["b1"]])) +
-      lambda2 * dgamma(val, shape = abs(param[["a2"]]), scale = abs(param[["b2"]])) +
-        (1-lambda1-lambda2) * dnorm(val, mean = 0, sd=abs(param[["b0"]]))
-    ))
-  )
-}
-
-fitmixture2gamma<-function(param, val) {
-  lambda1 = transform.lambda(param[["lambda1"]]) # constrain to be 0<.<1
-  return(
-    # likelihood function
-    - sum(log(
-      lambda1 * dgamma(val, shape = abs(param[["a0"]]), scale = abs(param[["b0"]])) +
-        (1-lambda1) * dgamma(val, shape = abs(param[["a1"]]), scale = abs(param[["b1"]])) 
-    ))
-  )
-}
 
 # - - - - - - - - - - - - - - - - - - - - 
 # Distributional bootstrap extraction - remove ELISA noise
@@ -150,7 +282,7 @@ fitmixture2gamma<-function(param, val) {
 fit_ELISA_univariable <- function(inputs){ # use inputs from above fit_ELISA function
   
   # Load titre data
-  loadinputs = fit_ELISA()
+  loadinputs = fit_ELISA(ELISA.fit = T)
   inputsFit0 = loadinputs$tabinput
   
   titre.weights = loadinputs$titrechange
@@ -166,10 +298,10 @@ fit_ELISA_univariable <- function(inputs){ # use inputs from above fit_ELISA fun
   
   # Seroconversion only
   inputsFit01=inputsFit01[inputsFit01$ELISA1<=9,] # ONLY PICK FULLY SERONEGATIVE
-  inputsFit0$AGE_U_18 = as.numeric(inputsFit0$AGE_U_18 ) # Age under 18
-  inputsFit01$SEX = 1 - as.numeric(inputsFit01$SEX ) # Sex - Now 1=Female
+  inputsFit01$AGE_U_20 = as.numeric(inputsFit01$AGE_2015<20) # Age under 18
+  inputsFit01$SEX = 1 - as.numeric(inputsFit01$SEX ) # Sex -  1=Female
   
-  modelB.1 <- glm(Dconvert ~ AGE_U_18 , data = inputsFit01,family = "binomial") # Age in 2015
+  modelB.1 <- glm(Dconvert ~ AGE_U_20 , data = inputsFit01,family = "binomial") # Age in 2015
   modelB.1a <- glm(Dconvert ~ SEX , data = inputsFit01,family = "binomial") # Sex (Female = 1)
   modelB.1b <- glm(Dconvert ~ ETHNIC , data = inputsFit01,family = "binomial") # Ethnicity (iTaukei = 1; Other = 0)
   modelB.2 <- glm(Dconvert ~ I_MOS   , data = inputsFit01,family = "binomial") # Presence of mosquitoes
@@ -184,7 +316,7 @@ fit_ELISA_univariable <- function(inputs){ # use inputs from above fit_ELISA fun
   
   model.list=list(modelB.1,modelB.1a,modelB.1b,modelB.2,modelB.3,modelB.4,modelB.5,modelB.6,modelB.7,modelB.8,modelB.9,modelB.10)
   
-  names.model=c("AGE_2015","SEX","ETHNIC","I_MOS","I_TIR","I_WAT", "I_AC","I_BLK","GEOG","FEVER_2YR","DOC_2YR","HH_D")
+  names.model=c("AGE_U_20","SEX","ETHNIC","I_MOS","I_TIR","I_WAT", "I_AC","I_BLK","GEOG","FEVER_2YR","DOC_2YR","HH_D")
   
   data.tally = inputsFit01[,names.model]
   
@@ -242,15 +374,11 @@ fit_ELISA_univariable <- function(inputs){ # use inputs from above fit_ELISA fun
     store.paramTable = rbind(store.paramTable,store.param )
     
   }
-  
-  
+
   store.paramTable
   colnames(store.paramTable) = c("variable","odds","p")
-  
   write.csv(store.paramTable,"plots/Result_rise_vs_fever.csv")
-  
-  
-  
+
   # Summary of seroconversion and fever visits
   store.fever = matrix(nrow=4,ncol=4) %>% data.frame()
   names(store.fever) = c("report","percent","report_inf","percent_inf")
@@ -287,15 +415,27 @@ fit_ELISA_univariable <- function(inputs){ # use inputs from above fit_ELISA fun
 # Distributional bootstrap extraction - remove ELISA noise
 # - - - - - - - - - - - - - - - - - - - - 
 
-remove_noise <- function(){ # use inputs from above fit_ELISA function
+remove_noise <- function(ELISA.fit=T){ # use inputs from above fit_ELISA function
   
-  # Load titre data
-  loadinputs = fit_ELISA()
+  # Load serology data
+  loadinputs = fit_ELISA(ELISA.fit)
   titre.weights = loadinputs$titrechange
   
-  inputs0 = loadinputs$tabinput #[inputs$RiseT>-5,] # Remove outliers
-  change.titre = inputs0$ELISA2-inputs0$ELISA1
-  change.titre00 = change.titre[change.titre>-7] # Remove outliers
+  dcutoff = read.csv("data/serology_MIA_cutoff.csv") # Load MIA cutoffs
+  
+  inputs0 = loadinputs$tabinput
+  
+  if(ELISA.fit ==T){
+    change.titre = inputs0$ELISA2-inputs0$ELISA1
+    change.titre00 = change.titre[change.titre > -9] # Remove outliers
+  }else{
+    denv3.mia.1 = inputs0$DENV3/1000 #+dcutoff$DENV3
+    denv3.mia.2 = inputs0$DENV3B/1000 #+dcutoff$DENV3
+    change.titre = denv3.mia.2 - denv3.mia.1
+    change.titre00 = change.titre[!is.na(change.titre)]
+    change.titre00 = change.titre00[change.titre00>-5]
+  }
+  
 
   param = c(a0 = 0, b0=1, a1=2, b1=3, lambda1 = 1)
   result2 = optim(param, fitmixture2, method="L-BFGS-B", val=change.titre00,lower=c(rep(0,4),-10), hessian=FALSE) #, control=list(trace=1))
@@ -323,17 +463,22 @@ remove_noise <- function(){ # use inputs from above fit_ELISA function
   par(mfrow=c(1,3),mar=c(4,4,2,2),mgp=c(1.7,0.5,0))
   
   #Plot Fig A
-  hist(inputs0$ELISA1,freq=F,breaks=seq(-0.5,35.5,1),col=rgb(1,0.5,0,1),border="white",main="",xlab="DENV IgG ELISA titre",ylab="proportion of samples",ylim=c(0,0.1),xlim=c(0,35),xaxs="i",yaxs="i")
+  hist(inputs0$ELISA1,freq=F,breaks=seq(-0.5,35.5,1),col=rgb(1,0.5,0,1),border="white",main="",xlab="DENV IgG ELISA value",ylab="proportion of samples",ylim=c(0,0.1),xlim=c(0,35),xaxs="i",yaxs="i")
   hist(inputs0$ELISA2,freq=F,breaks=seq(-0.5,35.5,1),add=T,border="white",col=rgb(0,0,1,0.5))
+  txtSize=1
+  text(x=25,y=0.09,adj=0,labels="2013",col=rgb(1,0.5,0),cex=txtSize)
+  text(x=25,y=0.08,adj=0,labels="2015",col=rgb(0,0,1),cex=txtSize)
+  
   lines(c(9,9),c(0,1),lty=2)
   lines(c(11,11),c(0,1),lty=2)
+
   title(adj=0,main=LETTERS[1])
   
   #Plot full distribution Fig B
   xx <- seq(-10,20,0.1)
-  change.titreH = change.titre[change.titre>-7]
+  change.titreH = change.titre00
   hist(change.titreH,freq=F,breaks=seq(-6.5,20.5,1),col="light grey",main="",border="white",
-       xlab="change in DENV IgG ELISA titre",ylab="proportion of samples",ylim=c(0,0.25),xlim=c(-5,21),xaxs="i",yaxs="i")
+       xlab="change in DENV IgG ELISA value",ylab="proportion of samples",ylim=c(0,0.25),xlim=c(-5,21),xaxs="i",yaxs="i")
   
   all.model = transform.lambda(parfit[["lambda1"]])*dgamma(xx, shape = parfit[["a1"]], scale = parfit[["b1"]]) + (1-transform.lambda(parfit[["lambda1"]]))*dnorm(xx, mean = 0, sd = parfit[["b0"]])
   lines(xx,all.model, col="black",lwd=1) # Simulation testing
@@ -350,16 +495,14 @@ remove_noise <- function(){ # use inputs from above fit_ELISA function
   
   # Figure C
   plot(inputs0$ELISA1,inputs0$RiseT,pch=19,cex=0.7,ylim=c(0,21),xlim=c(0,30),
-       col="white",xaxs="i",yaxs="i",xlab="DENV IgG ELISA titre 2013",ylab="change in titre") #
-  #plot(inputs0$ELISA1,inputs0$RiseT,pch=19,cex=0.7,ylim=c(0,21),xlim=c(0,81),
-  #     col="white",xaxs="i",yaxs="i",xlab="age in 2015",ylab="change in titre") #"DENV IgG ELISA titre 2013"
-  
+       col="white",xaxs="i",yaxs="i",xlab="DENV IgG ELISA value 2013",ylab="change in value")
+
   for(ii in 1:btstrap){
     # Bootstrap sample from data
     rand.pick = sample(x=c(1:l.sample),size=l.sample,replace = T)
     inputs01 = inputs0[rand.pick,]
     
-    # Remove noise - Need to update to match titre
+    # Remove noise
     change.titre0 = inputs01$ELISA2-inputs01$ELISA1
     titre.weights0 = sapply(change.titre0,function(x){ p.signal[match(x,x.titre)]   })
     inputs1 = inputs01 #[randpick,]
@@ -399,13 +542,9 @@ remove_noise <- function(){ # use inputs from above fit_ELISA function
   
   # - - - - - - - - - - - - - - - - - - - - 
   # Calculate ELISA results by age, adjusting for primary and secondary
-  
-  p.signal1 = (y.signl1)/(y.error+y.signl1+y.signl2)
-  p.signal2 = (y.signl2)/(y.error+y.signl1+y.signl2)
-  
+
   change.titre = inputs0$ELISA2-inputs0$ELISA1
   titre.weightsAll = sapply(change.titre,function(x){ p.signal[match(x,x.titre)]   })
-  titre.weightsSec = sapply(change.titre,function(x){ p.signal2[match(x,x.titre)]   })
 
   age.LineListS = data.frame(read.csv("data/agedistribution_suspected.csv",stringsAsFactors = F))[,2]
   age.LineListP = data.frame(read.csv("data/agedistribution_positive.csv",stringsAsFactors = F))[,2]
@@ -440,7 +579,7 @@ remove_noise <- function(){ # use inputs from above fit_ELISA function
     # Use distributions to calculate
     pick.ages = inputs0[age.ID,"AGE_2015"]
     pick.signal.prob = titre.weightsAll[age.ID]
-    pick.signal.Sndy = titre.weightsSec[age.ID]
+    pick.signal.Sndy = 0*titre.weightsAll[age.ID] #deprecated
     
     n.signl.All = sum(pick.signal.prob)
     n.signl.Sec = sum(pick.signal.Sndy)
@@ -645,13 +784,13 @@ plot_surveillance_data <- function(){
   # - - - - - - - - 
   # Plot ratio of reporting
   
-  par(mfrow=c(1,1),mar=c(2,3,1,3),mgp=c(2,0.7,0))
-  
-  y.vals = time.seriesD[,div.names[1]] #time.seriesPOS[,div.names[1]]
-  y.vals2 = time.series[,div.names[1]] #+ time.series[,div.names[1]] - y.vals
-  
-  plot(time.seriesD$date,y.vals/(y.vals+y.vals2),xlim=c(as.Date("2013-11-01"),as.Date("2014-07-01")),ylim=c(0,1),pch=19,ylab="confirmed cases/all suspected cases")
-  lines(time.seriesD$date,y.vals/(y.vals+y.vals2),xlim=c(as.Date("2013-11-01"),as.Date("2014-08-01")),ylim=c(0,1),pch=19)
+  # par(mfrow=c(1,1),mar=c(2,3,1,3),mgp=c(2,0.7,0))
+  # 
+  # y.vals = time.seriesD[,div.names[1]] #time.seriesPOS[,div.names[1]]
+  # y.vals2 = time.series[,div.names[1]] #+ time.series[,div.names[1]] - y.vals
+  # 
+  # plot(time.seriesD$date,y.vals/(y.vals+y.vals2),xlim=c(as.Date("2013-11-01"),as.Date("2014-07-01")),ylim=c(0,1),pch=19,ylab="confirmed cases/all suspected cases")
+  # lines(time.seriesD$date,y.vals/(y.vals+y.vals2),xlim=c(as.Date("2013-11-01"),as.Date("2014-08-01")),ylim=c(0,1),pch=19)
   
   dev.copy(pdf,paste("plots/Figure_S1_timeseries_dengue_GeographicA.pdf",sep=""),width=7,height=5)
   dev.off()
