@@ -1,4 +1,4 @@
-date,min_air_temp,max_air_temp
+date,max_air_temp,min_air_temp
 2013-10-01,28.4,23
 2013-10-02,26.5,23.3
 2013-10-03,26.8,23.5

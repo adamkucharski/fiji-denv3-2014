@@ -48,7 +48,8 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
               r_inf=1/prior_p_Inf[1], # inf (h)
               v_exp=1/prior_p_VEx[1], # latent (v) # from Chan et al at 30C
               mu_v=1/prior_p_MuV[1], # mortality rate
-              prop_at_risk = 1 , #as.numeric(thetaR_IC[thetaR_IC$param=="at_risk",2]),  # proportion of population who could be infected
+              prop_at_risk = 1,  # proportion of population who could be infected
+              temp_balance = as.numeric(thetaR_IC[thetaR_IC$param=="temp_balance",2]),  # temperature balance
               m_density=as.numeric(thetaR_IC[thetaR_IC$param=="m_density",2]), # mosquito density
               beta2=as.numeric(thetaR_IC[thetaR_IC$param=="beta_h_2",2]), # baseline after control - jointly fitted
               beta3=as.numeric(thetaR_IC[thetaR_IC$param=="beta_h_3",2]), # DEPRECATED

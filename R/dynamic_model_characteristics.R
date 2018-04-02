@@ -49,23 +49,26 @@ weather2014.daily = weather.data.daily[weather.data.daily$date >= as.Date("2013-
 #yy_year = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014$Date))); weather2014[y,"Av_temp"] })
 
 tt_range = as.Date(weather2014.daily$date) 
-yy_year = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014.daily$date))); weather2014.daily[y,"min_air_temp"] + (weather2014.daily[y,"max_air_temp"]-weather2014.daily[y,"min_air_temp"])/2 })
+yy_year1 = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014.daily$date))); weather2014.daily[y,"min_air_temp"]}) # + (weather2014.daily[y,"max_air_temp"]-weather2014.daily[y,"min_air_temp"])/2 })
+yy_year2 = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014.daily$date))); weather2014.daily[y,"max_air_temp"]}) # + (weather2014.daily[y,"max_air_temp"]-weather2014.daily[y,"min_air_temp"])/2 })
+
 
 # Adjust for dt
 tt_actual = as.numeric(tt_range - start.date) + dt
 
-# - - - - - 
-# Define temperature function
+# - - - - -
+# Define temperature function via sin function
 seasonaltemp <- function(x,theta){theta[["temp_base"]]*(1+ theta[["temp_amp"]]*sin((x - theta[["temp_shift"]])*2*pi/365) )  }
 seasonaltemp_fit <- function(param,vals){ sum((seasonaltemp(tt_actual,param) - vals)^2)  }
 
 # Fit sine function to temperature
 param = c(temp_amp=0.1, temp_base=24, temp_shift=10)
-optim_temp = optim(param, seasonaltemp_fit, method="L-BFGS-B",vals=yy_year, lower=c(rep(0,3)),upper=c(1,30,365), hessian=FALSE)$par
+optim_temp1 = optim(param, seasonaltemp_fit, method="L-BFGS-B",vals=yy_year1, lower=c(rep(0,3)),upper=c(1,30,365), hessian=FALSE)$par
+theta_fit1 = c(temp_amp=optim_temp1[["temp_amp"]], temp_base=optim_temp1[["temp_base"]], temp_shift=optim_temp1[["temp_shift"]])
 
-theta_fit = c(temp_amp=optim_temp[["temp_amp"]], temp_base=optim_temp[["temp_base"]], temp_shift=optim_temp[["temp_shift"]])
+optim_temp2 = optim(param, seasonaltemp_fit, method="L-BFGS-B",vals=yy_year2, lower=c(rep(0,3)),upper=c(1,30,365), hessian=FALSE)$par
+theta_fit2 = c(temp_amp=optim_temp2[["temp_amp"]], temp_base=optim_temp2[["temp_base"]], temp_shift=optim_temp2[["temp_shift"]])
 
-#theta_fit = c(temp_amp=0.2, temp_base=optim_temp[["temp_base"]], temp_shift=10)
 
 # Plot temperature fit (to check:
 tt_numeric = as.numeric(seq(start.date,start.date+300,1) - start.date)

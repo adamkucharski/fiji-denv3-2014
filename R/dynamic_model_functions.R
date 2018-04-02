@@ -49,7 +49,7 @@ calculate_r0 <- function(th_in,sus_c=1,sm_c=1,t_vary=1,controlT=1){
   rain_scale = th_in$beta_v_mask*carrying_f(t_vary,0,th_in) + (1-th_in$beta_v_mask)
   
   
-  temp_t =  th_in$beta_v_mask*seasonal_f(t_vary,date0=0,theta) + (1-th_in$beta_v_mask)*26
+  temp_t =  th_in$beta_v_mask*seasonal_f(t_vary,date0=0,th_in) + (1-th_in$beta_v_mask)*26
   
   contact_rate = th_in$beta_v * bite_temp(temp_t) * (controlT*decline_f(t_vary,date0=th_in$shift_date,th_in) +(1-controlT))
   
@@ -149,9 +149,9 @@ SampleTheta<-function(theta_in, theta_init_in,m,covartheta,covartheta_init,singl
     theta_star[["repR"]]=min(theta_star[["repR"]],2-theta_star[["repR"]]) # Ensure reporting between zero and 1
   }
   
-  # if(sum(names(theta_star)=="recruit_m")>0){ # check theta contains this vector
-  #   theta_star[["recruit_m"]]=min(theta_star[["recruit_m"]],2-theta_star[["recruit_m"]]) # Ensure seasonality between zero and 1
-  # }
+  if(sum(names(theta_star)=="temp_balance")>0){ # check theta contains this vector
+    theta_star[["temp_balance"]]=min(theta_star[["temp_balance"]],2-theta_star[["temp_balance"]]) # Seasonality temperature pick
+  }
   
   if(sum(names(theta_star)=="prop_at_risk")>0){ # check theta contains this vector
     theta_star[["prop_at_risk"]]=min(theta_star[["prop_at_risk"]],2-theta_star[["prop_at_risk"]]) # Ensure at risk group between zero and 1
@@ -216,8 +216,8 @@ ComputeProbability<-function(sim_likelihood,sim_likelihood_star,thetatab,theta_s
   # sim_likelihood=sim_liktab[m]; sim_likelihood_star=sim_marg_lik_star; thetatab=thetatab[m,]; 
   
   # Include priors - Note have prior on Amplitude now as well
-  p_theta_star = priorInf(1/theta_star[["r_inf"]])*priorExp(1/theta_star[["r_exp"]])*priorVEx(1/theta_star[["v_exp"]])*priorMuV(1/theta_star[["mu_v"]])*priorBeta_h(theta_star[["beta_v"]]) *priorDensity(theta_star[["m_density"]]) * priorAtRisk(theta_star[["prop_at_risk"]])
-  p_theta = priorInf(1/thetatab[["r_inf"]])*priorExp(1/thetatab[["r_exp"]])*priorVEx(1/thetatab[["v_exp"]])*priorMuV(1/thetatab[["mu_v"]])*priorBeta_h(thetatab[["beta_v"]]) * priorDensity(thetatab[["m_density"]]) * priorAtRisk(thetatab[["prop_at_risk"]])
+  p_theta_star = priorInf(1/theta_star[["r_inf"]])*priorExp(1/theta_star[["r_exp"]])*priorVEx(1/theta_star[["v_exp"]])*priorMuV(1/theta_star[["mu_v"]])*priorBeta_h(theta_star[["beta_v"]]) *priorDensity(theta_star[["m_density"]]) #* priorAtRisk(theta_star[["prop_at_risk"]])
+  p_theta = priorInf(1/thetatab[["r_inf"]])*priorExp(1/thetatab[["r_exp"]])*priorVEx(1/thetatab[["v_exp"]])*priorMuV(1/thetatab[["mu_v"]])*priorBeta_h(thetatab[["beta_v"]]) * priorDensity(thetatab[["m_density"]]) #* priorAtRisk(thetatab[["prop_at_risk"]])
 
   # Calculate acceptance probability
   val = exp((sim_likelihood_star-sim_likelihood))*(p_theta_star/p_theta)
@@ -234,7 +234,7 @@ sigmd1 <- function(x,x0){as.numeric(x>x0)} #as.numeric(x>x0)
 # Seasonality function
 seasonal_f <- function(x,date0,theta){
   #yy = (1 + theta[["beta_v_mask"]]*theta[["beta_v_amp"]]*sin(((x+date0)/365- season.shift )*2*pi)) 
-  yy = seasonaltemp(x,theta_fit)
+  yy = (1-theta[["temp_balance"]])*seasonaltemp(x,theta_fit1) + theta[["temp_balance"]]*seasonaltemp(x,theta_fit2)
   yy
 }
 
@@ -282,7 +282,7 @@ Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,y.vals2, y.vals.p
     # Reporting model
     xmax = max(min(date_list)+time.vals) 
     #par(mfrow=c(2,1))
-    par(mar = c(5,5,1,3),mfrow=c(2,1))
+    par(mar = c(4,4,1,3),mfrow=c(2,1))
     mu1=case_count
     case_actual = (y.vals+ y.vals2)
     plot(date_list,case_actual,xlim=c(min(date_list),xmax),pch=19,ylab="cases",ylim=c(0,2000)) #,ylim=c(0,2000) #

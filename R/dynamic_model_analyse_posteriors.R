@@ -92,7 +92,7 @@ plot_posteriors<-function(p_pick=4){
       hist(thetatab$repvol[picks],xlab="reporting dispersion",main=NULL,border=colB,col=colW,prob=TRUE)
       #hist(thetatab$repvolA[picks],xlab="reporting dispersion (2)",main=NULL,border=colB,col=colW,prob=TRUE)
 
-      hist(thetatab$prop_at_risk[picks],xlab="proportion at risk",prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
+      hist(thetatab$temp_balance[picks],xlab="temperature mid",prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
       
       
       #hist(thetatab$repvol[picks],xlab=expression(phi),main=NULL,col=rgb(0.5,0.8,1),prob=TRUE)
@@ -230,21 +230,28 @@ plot_weather_and_control <- function(){
   # }
   #lines(weather.date,weather.data$Av_temp,type="l",lty=1,col=rgb(1,0,0),xaxs="i",lwd=2)
   
-  plot(weather.data.daily$date,weather.data.daily$min_air_temp + (weather.data.daily$max_air_temp - weather.data.daily$min_air_temp)/2,type="l",lty=1,col="red",xlab="",ylab="temperature (°C)",lwd=2,ylim=c(20,30),xlim=xRange)
-
+  plot(weather.data.daily$date,weather.data.daily$min_air_temp,type="l",lty=1,col="orange",xlab="",ylab="temperature (°C)",lwd=1,ylim=c(17,35),xlim=xRange)
+  lines(weather.data.daily$date,weather.data.daily$max_air_temp,type="l",lty=1,col="red",lwd=1)
+  
   
   
   # PLOT CONTROL
+  # - ADD, date_listSeason
   thetaBASE = c(beta_v_mask=1,beta_c_mask=1,beta_c_base=0.5,beta_c_grad=10,beta_c_mid=0.9)
   
-  plot(date_listSeason,decline_f(as.numeric(date_listSeason-min(date_listSeason)+7),date0,thetaBASE),type="l",xlab="date",ylab="relative transmission",col=rgb(0,0.6,0.3),lwd=2,ylim=c(0,2))
+  xRange = c(as.Date("2013-11-04"),as.Date("2015-10-16"))
+  
+  date_listSeason = seq(min(xRange),max(xRange),7)
+
+  plot(date_listSeason,decline_f(as.numeric(date_listSeason-min(date_listSeason)+7),date0=0,thetaBASE),type="l",xlab="date",ylab="relative transmission",col=rgb(0,0.6,0.3),lwd=2,ylim=c(0,2))
   lines(c(min(xRange),max(xRange)),c(1,1),lty=2)
   polygon(c(as.Date("2014-03-08"),as.Date("2014-03-08"),as.Date("2014-03-22"),as.Date("2014-03-22")),c(-1,1e4,1e4,-1),col=rgb(1,0,0,0.2),lty=0)
   title(main=LETTERS[4],adj=0)
   
   
   # Plot vector parameters
-  temp_plot = seq(20,30,0.1)
+  temp_plot = seq(15,35,1)
+  weather_range = c(min(weather2014.daily$min_air_temp),max(weather2014.daily$max_air_temp))
   
   bite_temp(temp_plot)
   EI_rate_temp(temp_plot)
@@ -255,28 +262,28 @@ plot_weather_and_control <- function(){
   prob_to_v_temp(temp_plot)
   
   # Lifespan
-  plot(temp_plot,prior_p_MuV[1]/mortality_rate_temp(temp_plot),type="l",xlab="temperature",ylab="lifespan",ylim=c(6,9))
-  lines(c(max(weather2014$Av_temp),max(weather2014$Av_temp)),c(-1,200),col="blue",lty=2); lines(c(min(weather2014$Av_temp),min(weather2014$Av_temp)),c(-1,200),col="blue",lty=2)
+  plot(temp_plot,prior_p_MuV[1]/mortality_rate_temp(temp_plot),type="l",xlab="temperature",ylab="lifespan",ylim=c(4,9))
+  lines(c(weather_range[2],weather_range[2]),c(-1,200),col="blue",lty=2); lines(c(weather_range[1],weather_range[1]),c(-1,200),col="blue",lty=2)
 
   # EIP
   plot(temp_plot,prior_p_VEx[1]/EI_rate_temp(temp_plot),type="l",xlab="temperature",ylab="EIP",ylim=c(6,20))
-  lines(c(max(weather2014$Av_temp),max(weather2014$Av_temp)),c(-1,200),col="blue",lty=2); lines(c(min(weather2014$Av_temp),min(weather2014$Av_temp)),c(-1,200),col="blue",lty=2)
+  lines(c(weather_range[2],weather_range[2]),c(-1,200),col="blue",lty=2); lines(c(weather_range[1],weather_range[1]),c(-1,200),col="blue",lty=2)
   
   # Density
   plot(temp_plot,density_vary(temp_plot),type="l",xlab="temperature",ylab="normalised density",ylim=c(0,1.3))
-  lines(c(max(weather2014$Av_temp),max(weather2014$Av_temp)),c(-1,200),col="blue",lty=2); lines(c(min(weather2014$Av_temp),min(weather2014$Av_temp)),c(-1,200),col="blue",lty=2)
+  lines(c(weather_range[2],weather_range[2]),c(-1,200),col="blue",lty=2); lines(c(weather_range[1],weather_range[1]),c(-1,200),col="blue",lty=2)
   
   # Probability to human
   plot(temp_plot,prob_to_h_temp(temp_plot),type="l",xlab="temperature",ylab=expression('p'[hv]),ylim=c(0,1))
-  lines(c(max(weather2014$Av_temp),max(weather2014$Av_temp)),c(-1,200),col="blue",lty=2); lines(c(min(weather2014$Av_temp),min(weather2014$Av_temp)),c(-1,200),col="blue",lty=2)
+  lines(c(weather_range[2],weather_range[2]),c(-1,200),col="blue",lty=2); lines(c(weather_range[1],weather_range[1]),c(-1,200),col="blue",lty=2)
   
   # Probability to vector
   plot(temp_plot,prob_to_v_temp(temp_plot),type="l",xlab="temperature",ylab=expression('p'[vh]),ylim=c(0,1))
-  lines(c(max(weather2014$Av_temp),max(weather2014$Av_temp)),c(-1,200),col="blue",lty=2); lines(c(min(weather2014$Av_temp),min(weather2014$Av_temp)),c(-1,200),col="blue",lty=2)
+  lines(c(weather_range[2],weather_range[2]),c(-1,200),col="blue",lty=2); lines(c(weather_range[1],weather_range[1]),c(-1,200),col="blue",lty=2)
   
   # Biting rate
   plot(temp_plot,bite_temp(temp_plot),type="l",xlab="temperature",ylab="biting rate (per day)",ylim=c(0,0.5))
-  lines(c(max(weather2014$Av_temp),max(weather2014$Av_temp)),c(-1,200),col="blue",lty=2); lines(c(min(weather2014$Av_temp),min(weather2014$Av_temp)),c(-1,200),col="blue",lty=2)
+  lines(c(weather_range[2],weather_range[2]),c(-1,200),col="blue",lty=2); lines(c(weather_range[1],weather_range[1]),c(-1,200),col="blue",lty=2)
   
   
   prior_p_Exp <- c(5.9,var_prior); 
@@ -655,7 +662,7 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   weather.date = as.Date(weather.data$Date) + 15
   
   t_numeric = as.numeric(seq(start.date,start.date+800,1) )
-  temp_plot = seasonaltemp(t_numeric,theta_fit)
+  temp_plot = seasonaltemp(t_numeric,theta_fit1)
   temp_actl = weather.data$Av_temp
   rain_actl = weather.data$Rain_av
   rain_plot = seasonalrain(t_numeric,theta_fitRain) 
