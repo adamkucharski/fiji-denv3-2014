@@ -70,14 +70,15 @@ plot_posteriors<-function(p_pick=4){
 
       brekN=15 #,breaks=brekN,
 
-      hist(thetatab$beta[picks],xlab=expression(beta[h]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
-      curve(priorBetaH2M(x), col="red", lwd=2, add=TRUE, yaxt="n")
+      hist(thetatab$m_density[picks],xlab=expression('density'),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
+      curve(priorDensity(x), col="red", lwd=2, add=TRUE, yaxt="n")
       
       #hist(thetatab$beta_v[picks],xlab=expression('a'[v]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
       hist(thetatab$beta_v[picks],xlab=expression(beta[v]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
-      curve(priorBetaM2H(x), col="red", lwd=2, add=TRUE, yaxt="n")
+      curve(priorBeta_v(x), col="red", lwd=2, add=TRUE, yaxt="n")
       
       hist(thetatab$beta_v_amp[picks],xlab="rainfall amplitude",main=NULL,border=colB,col=colW,prob=TRUE)
+      hist(thetatab$beta2[picks],xlab="rainfall scaling",main=NULL,border=colB,col=colW,prob=TRUE)
       
       
       hist(thetatab$beta_c_grad[picks],xlab=expression('a'[1]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
@@ -210,9 +211,8 @@ plot_weather_and_control <- function(){
   source("R/load_timeseries_data.R",local=TRUE)
   
   locnnLoop=1
-  par(mfrow=c(2,2),mgp=c(2,0.7,0),mar = c(3,4,1,3))
   
-
+  par(mfrow=c(3,3),mgp=c(2,0.7,0),mar = c(3,3,1,1))
 
   # PLOT WEATHER
   xRange = c(as.Date("2013-11-01"),as.Date("2014-11-01")) # DATE OF SAMPLE COLLECTION
@@ -224,46 +224,70 @@ plot_weather_and_control <- function(){
   }
   lines(weather.date,weather.data$Rain_av,type="l",lty=1,col=rgb(0,0,1),xaxs="i",lwd=2)
   
-  # Overlap MAP estimate of temperature function?
-  #lines(date_listSeason,500*(plotCosMR0[1,]-0.55),type="l",col=rgb(0,0,0),ylim=c(0.5,2),xaxs="i",lwd=3)
+  #plot(weather.date,weather.data$Av_temp,type="l",lty=1,col="red",xlab="",ylab="temperature (°C)",lwd=0,ylim=c(21,28),xlim=xRange)
+  # for(ii in 1:(length(weather.data$Av_temp)/12)-1){
+  #   lines(weather.date+365*ii,weather.data$Av_temp,type="l",lty=1,col=rgb(1,0,0,0.2),xaxs="i",lwd=1)
+  # }
+  #lines(weather.date,weather.data$Av_temp,type="l",lty=1,col=rgb(1,0,0),xaxs="i",lwd=2)
   
+  plot(weather.data.daily$date,weather.data.daily$min_air_temp + (weather.data.daily$max_air_temp - weather.data.daily$min_air_temp)/2,type="l",lty=1,col="red",xlab="",ylab="temperature (°C)",lwd=2,ylim=c(20,30),xlim=xRange)
+
   
-  par(new=TRUE)
-  plot(weather.date,weather.data$Av_temp,type="l",lty=1,col="red",xaxt="n",yaxt="n",xlab="",ylab="",lwd=0,ylim=c(21,28),xlim=xRange)
-  for(ii in 1:(length(weather.data$Av_temp)/12)-1){
-    lines(weather.date+365*ii,weather.data$Av_temp,type="l",lty=1,col=rgb(1,0,0,0.2),xaxs="i",lwd=1)
-  }
-  lines(weather.date,weather.data$Av_temp,type="l",lty=1,col=rgb(1,0,0),xaxs="i",lwd=2)
-  
-  axis(4,col="red",col.axis="red")
-  mtext("temperature (°C)", side=4, line=2,col="red",cex=0.8) # Label for 2nd axis
-  
-  title(main=LETTERS[1],adj=0)
-  
-  # PLOT MORDECAI ET AL FUNCTION
-  plot(temp.R0.data$aegy.temps.DTR8,temp.R0.data$R0.rel,type="l",xlab="temperature (°C)",ylab=expression("relative R"[0]))
-  min(weather.data$Av_temp)
-  weather2014.relative.R0[1]
-  lines(c(max(weather2014$Av_temp),max(weather2014$Av_temp)),c(-1,2),col="blue")
-  lines(c(min(weather2014$Av_temp),min(weather2014$Av_temp)),c(-1,2),col="blue")
-  title(main=LETTERS[2],adj=0)
-  
-  # PLOT SEASONAL FUNCTION
-  date0 = (as.Date("2013-10-28")-date_list[1]) %>% as.numeric() # Shift back as simulation starts from 2013-10-28
-  date_listSeason = seq(min(xRange),max(xRange),7)
-  thetaBASE = c(beta_v_mask=1,beta_v_amp=((1-rel.temp)/(1+rel.temp)),beta_c_mask=1,beta_c_base=0.5,beta_c_grad=10,beta_c_mid=0.38)
- 
-  plot(date_listSeason,seasonal_f(as.numeric(date_listSeason-min(date_listSeason)+7),date0,thetaBASE),type="l",xlab="date",ylab="relative transmission",col="red",lwd=2,ylim=c(0,2))
-  lines(c(min(xRange),max(xRange)),c(1,1),lty=2)
-  title(main=LETTERS[3],adj=0)
   
   # PLOT CONTROL
+  thetaBASE = c(beta_v_mask=1,beta_c_mask=1,beta_c_base=0.5,beta_c_grad=10,beta_c_mid=0.9)
+  
   plot(date_listSeason,decline_f(as.numeric(date_listSeason-min(date_listSeason)+7),date0,thetaBASE),type="l",xlab="date",ylab="relative transmission",col=rgb(0,0.6,0.3),lwd=2,ylim=c(0,2))
   lines(c(min(xRange),max(xRange)),c(1,1),lty=2)
   polygon(c(as.Date("2014-03-08"),as.Date("2014-03-08"),as.Date("2014-03-22"),as.Date("2014-03-22")),c(-1,1e4,1e4,-1),col=rgb(1,0,0,0.2),lty=0)
   title(main=LETTERS[4],adj=0)
   
-  dev.copy(pdf,paste("plots/Figure_S3_illustrate_control.pdf",sep=""),width=8,height=6)#,height=8)
+  
+  # Plot vector parameters
+  temp_plot = seq(20,30,0.1)
+  
+  bite_temp(temp_plot)
+  EI_rate_temp(temp_plot)
+  MD_rate_temp(temp_plot)
+  eggs_per_female_temp(temp_plot)
+  eggs_to_adult_temp(temp_plot)
+  prob_to_h_temp(temp_plot)
+  prob_to_v_temp(temp_plot)
+  
+  # Lifespan
+  plot(temp_plot,prior_p_MuV[1]/mortality_rate_temp(temp_plot),type="l",xlab="temperature",ylab="lifespan",ylim=c(6,9))
+  lines(c(max(weather2014$Av_temp),max(weather2014$Av_temp)),c(-1,200),col="blue",lty=2); lines(c(min(weather2014$Av_temp),min(weather2014$Av_temp)),c(-1,200),col="blue",lty=2)
+
+  # EIP
+  plot(temp_plot,prior_p_VEx[1]/EI_rate_temp(temp_plot),type="l",xlab="temperature",ylab="EIP",ylim=c(6,20))
+  lines(c(max(weather2014$Av_temp),max(weather2014$Av_temp)),c(-1,200),col="blue",lty=2); lines(c(min(weather2014$Av_temp),min(weather2014$Av_temp)),c(-1,200),col="blue",lty=2)
+  
+  # Density
+  plot(temp_plot,density_vary(temp_plot),type="l",xlab="temperature",ylab="normalised density",ylim=c(0,1.3))
+  lines(c(max(weather2014$Av_temp),max(weather2014$Av_temp)),c(-1,200),col="blue",lty=2); lines(c(min(weather2014$Av_temp),min(weather2014$Av_temp)),c(-1,200),col="blue",lty=2)
+  
+  # Probability to human
+  plot(temp_plot,prob_to_h_temp(temp_plot),type="l",xlab="temperature",ylab=expression('p'[hv]),ylim=c(0,1))
+  lines(c(max(weather2014$Av_temp),max(weather2014$Av_temp)),c(-1,200),col="blue",lty=2); lines(c(min(weather2014$Av_temp),min(weather2014$Av_temp)),c(-1,200),col="blue",lty=2)
+  
+  # Probability to vector
+  plot(temp_plot,prob_to_v_temp(temp_plot),type="l",xlab="temperature",ylab=expression('p'[vh]),ylim=c(0,1))
+  lines(c(max(weather2014$Av_temp),max(weather2014$Av_temp)),c(-1,200),col="blue",lty=2); lines(c(min(weather2014$Av_temp),min(weather2014$Av_temp)),c(-1,200),col="blue",lty=2)
+  
+  # Biting rate
+  plot(temp_plot,bite_temp(temp_plot),type="l",xlab="temperature",ylab="biting rate (per day)",ylim=c(0,0.5))
+  lines(c(max(weather2014$Av_temp),max(weather2014$Av_temp)),c(-1,200),col="blue",lty=2); lines(c(min(weather2014$Av_temp),min(weather2014$Av_temp)),c(-1,200),col="blue",lty=2)
+  
+  
+  prior_p_Exp <- c(5.9,var_prior); 
+  
+  # from Mordecai et al function above
+  prior_p_VEx <- c(10,var_prior); prior_p_MuV <- c(8,var_prior); prior_p_Inf <- c(5,var_prior)
+
+  title(main=LETTERS[1],adj=0)
+
+  
+  dev.copy(pdf,paste("plots/Figure_S3_illustrate_control.pdf",sep=""),width=6,height=6)#,height=8)
   dev.off()
   
 }
@@ -273,7 +297,7 @@ plot_weather_and_control <- function(){
 
 model_comparison <- function( compareN = c(2:4) ){
 
-  # Need to update these
+  # Need to update these for AIC (deprecated)
   param.init = 5
   param.all = 7
   paramlist = c(0,0,2,2+3,0,0,2,2+3)
@@ -295,19 +319,31 @@ model_comparison <- function( compareN = c(2:4) ){
     
     lik.tab = c(lik.tab,max(sim_likOut))
 
-    # Validate likelihood
+    # Check maximum likelihood
     output1 = Deterministic_modelR(1,dt, thetatab[pick.max,], theta_inittab[pick.max,], y.vals,y.vals2,y.vals.prop,time.vals,repTN,locationI=locationtab[1])
     print( output1$lik)
     
-    output1 = Deterministic_modelR(1,dt, apply(thetatab,2,mean), apply(theta_initAlltab[picks,iiH,],2,mean), y.vals,y.vals2,y.vals.prop,time.vals,repTN,locationI=locationtab[1])
+    # Set mean parameters and incorporate initial conditions
+    theta_init_mean = apply(theta_initAlltab[picks,iiH,],2,mean)
+    theta_mean = apply(thetatab,2,mean)
+    
+    theta_init_mean[["s_initC"]] = theta_mean[["npopC"]] - theta_init_mean[["e_initC"]] - theta_init_mean[["i1_initC"]] - theta_init_mean[["r_initC"]]
+    theta_init_mean[["s_initA"]] = theta_mean[["npopA"]] - theta_init_mean[["e_initA"]] - theta_init_mean[["i1_initA"]] - theta_init_mean[["r_initA"]]
+    theta_init_mean[["sm_initC"]] = 1 - theta_init_mean[["em_initC"]] - theta_init_mean[["im_initC"]]
+    
+    output1 = Deterministic_modelR(1,dt, theta_mean, theta_init_mean, y.vals,y.vals2,y.vals.prop,time.vals,repTN,locationI=locationtab[1])
     loglik_theta_bar = output1$lik
     
-    deviance.at.post.mean = -2*loglik_theta_bar #-2*max(sim_likOut)
+    # Calculate DIC for each model
+    deviance.at.post.mean = -2*loglik_theta_bar 
     effective.param = var(-2*sim_likOut)/2
-    dic.calc = deviance.at.post.mean + effective.param
-    dic.tab = c(dic.tab,deviance.at.post.mean)
+
+    dic.calc = deviance.at.post.mean + 2*effective.param
+    
+    dic.tab = c(dic.tab,dic.calc)
   }
   
+  # Compile outputs
   aic.comp = aic.tab - min(aic.tab)
   dic.comp = dic.tab - min(dic.tab)
   name.models = c("SEIR","SEIR_climate","SEIR_climate_control") #,"SEIR_post","SEIR_climate_post","SEIR_climate_control_post")
@@ -323,7 +359,7 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   
   # 
   # Set up vectors
-  # p_pick = 4; simM=FALSE; Fmask=FALSE; long_time = F; DoubleFit =F
+  # p_pick = 3; simM=FALSE; Fmask=FALSE; long_time = F; DoubleFit =F
   dataP=NULL
   simM=F
   
@@ -584,7 +620,7 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   
   #par(new=TRUE)
   #plot(date_listSeason,plotCosMR0[3,],type="l",col=rgb(0,0,0,0),ylim=c(0,2),xaxt="n",yaxt="n",xlim=xRange2,xlab="",ylab="")
-  plot(date_listSeason,plotReduceM[3,],type="l",col=rgb(0,0,0,0),ylim=c(0,2),xlim=xRangeTimeS,xlab="",ylab=paste("R and relative transmission",sep=""))
+  plot(date_listSeason,plotReduceM[3,],type="l",col=rgb(0,0,0,0),ylim=c(0,3),xlim=xRangeTimeS,xlab="",ylab=paste("R and relative transmission",sep=""))
   
   # Plot clean up campaign dates
   polygon(c(as.Date("2014-03-08"),as.Date("2014-03-08"),as.Date("2014-03-22"),as.Date("2014-03-22")),c(-1,1e4,1e4,-1),col=rgb(1,0,0,0.3),lty=0)
@@ -613,12 +649,12 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   title(main=LETTERS[3],adj=0)
 
   # - - 
-  # Plot weather patterns
+  # Plot weather patterns - NEED TO UPDATE
   
   # Define data
   weather.date = as.Date(weather.data$Date) + 15
   
-  t_numeric = as.numeric(seq(start.date-100,start.date+800,1) - start.date)
+  t_numeric = as.numeric(seq(start.date,start.date+800,1) )
   temp_plot = seasonaltemp(t_numeric,theta_fit)
   temp_actl = weather.data$Av_temp
   rain_actl = weather.data$Rain_av
@@ -650,7 +686,7 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   
   # - - 
   # Plot basic reproduction number
-  plot(date_listSeason,plotR0_both[1,],type="l",col="white",xlab="",ylab=expression(paste(R[0]," and normalised rainfall",sep="")),xaxs="i",ylim=c(0.3,2),xlim=xRange2)
+  plot(date_listSeason,plotR0_both[1,],type="l",col="white",xlab="",ylab=expression(paste(R[0],sep="")),xaxs="i",ylim=c(0.3,3),xlim=xRange2)
   polygon(c(date_listSeason,rev(date_listSeason)),c(plotR0_both[2,],rev(plotR0_both[3,])),lty=0,col=rgb(0,0,0,0.2))
   lines(date_listSeason,plotR0_both[1,],type="l",col=rgb(0,0,0),xlab="",ylab="")
   

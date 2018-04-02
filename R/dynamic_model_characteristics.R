@@ -23,8 +23,6 @@ control.shift = as.numeric((control.start-start.date)/365); control.range = as.n
 # - - - - - - - - 
 # Set up timeseries
 
-#timeser14 = timeser14_All
-#timeser14[timeser14$date>swap.date,] = timeser14_Sus[timeser14_Sus$date>swap.date,]
 timeser14_All = timeser14_All[timeser14_All$date < cutt.date,] 
 timeser14_Sus = timeser14_Sus[timeser14_Sus$date < cutt.date,] 
 timeser14_Sus$Central = timeser14_Sus$Central - timeser14_All$Central
@@ -33,26 +31,25 @@ timeser14_Sus$Central = timeser14_Sus$Central - timeser14_All$Central
 timeser14_Sus[timeser14_Sus$date<"2014-01-13","Central"]=0
 
 # Set up weather fluctuation prior
-#weather.data.daily = read.csv(paste("data/suva_temp_data.csv",sep=""), stringsAsFactors = F); weather.data.daily$lsd = as.Date(weather.data.daily$lsd) # Load climate data
-
 weather.data = read.csv(paste("data/data_Fiji_climate.csv",sep=""), stringsAsFactors = F) # Load climate data
-temp.R0.data = read.csv(paste("data/outputTemp_R0.csv",sep=""), stringsAsFactors = F) %>% data.frame() # Load relative R0 from Mordecai
-weather2014 = weather.data[weather.data$Date >= as.Date("2013-11-01") &weather.data$Date<= as.Date("2014-11-01"),] # select relevant dates
-#weather2014.relative.R0 = c( max(temp.R0.data[min(weather2014$Av_temp)>=temp.R0.data$aegy.temps.DTR8,"R0.rel"]), temp.R0.data[max(weather2014$Av_temp)<=temp.R0.data$aegy.temps.DTR8,"R0.rel"][1] )
-#rel.temp =  weather2014.relative.R0[1]/weather2014.relative.R0[2]
+weather2014 = weather.data[weather.data$Date >= as.Date("2013-10-01") &weather.data$Date<= as.Date("2014-10-01"),] # select relevant dates 
 
-#weather2014.daily = weather.data.daily[weather.data.daily$lsd >= as.Date("2013-11-01") &weather.data.daily$lsd<= as.Date("2014-11-01"),] # select relevant dates
+weather.data.daily = read.csv(paste("data/data_Fiji_climate_daily.csv",sep=""), stringsAsFactors = F) %>% data.frame() # Load daily temperature data
+weather.data.daily$date = as.Date(weather.data.daily$date)
+
+weather2014.daily = weather.data.daily[weather.data.daily$date >= as.Date("2013-11-01") &weather.data.daily$date<= as.Date("2014-11-01"),] # select relevant dates
 
 #plot(weather2014.daily$lsd,weather2014.daily$min_air_temp+ (weather2014.daily$max_air_temp-weather2014.daily$max_air_temp)/2,type="l")
+
 
 # - - - - - - - - - - - - - - - 
 # Fit sine wave to data
 #tt_range = seq(start.date,start.date+200,1)
-tt_range = as.Date(weather2014$Date) + 15
-yy_year = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014$Date))); weather2014[y,"Av_temp"] })
+#tt_range = as.Date(weather2014$Date) + 15
+#yy_year = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014$Date))); weather2014[y,"Av_temp"] })
 
-#tt_range = as.Date(weather2014.daily$lsd) 
-#yy_year = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014.daily$lsd))); weather2014.daily[y,"min_air_temp"] + (weather2014.daily[y,"max_air_temp"]-weather2014.daily[y,"min_air_temp"])/2 })
+tt_range = as.Date(weather2014.daily$date) 
+yy_year = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014.daily$date))); weather2014.daily[y,"min_air_temp"] + (weather2014.daily[y,"max_air_temp"]-weather2014.daily[y,"min_air_temp"])/2 })
 
 # Adjust for dt
 tt_actual = as.numeric(tt_range - start.date) + dt
@@ -72,38 +69,39 @@ theta_fit = c(temp_amp=optim_temp[["temp_amp"]], temp_base=optim_temp[["temp_bas
 
 # Plot temperature fit (to check:
 tt_numeric = as.numeric(seq(start.date,start.date+300,1) - start.date)
-#plot(tt_actual,yy_year)
-#lines(tt_actual, seasonaltemp(tt_actual,theta_fit) )
-#lines(tt_numeric, seasonaltemp(tt_numeric,theta_fit) )
+# plot(tt_actual,yy_year); lines(tt_numeric, seasonaltemp(tt_numeric,theta_fit) )
+# lines(tt_actual, seasonaltemp(tt_actual,theta_fit) )
+#
 
 # - - - - - 
-# Fit sine function to rainfall
-yy_yearR = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014$Date))); weather2014[y,"Rain_av"] })
+# Fit moving average function to rainfall
+tt_range = seq(start.date-30,start.date+820,1) # All dates
+yy_yearR = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather.data$Date))); weather.data[y,"Rain_av"] })
 
-seasonalrain <- function(x,theta){theta[["rain_base"]]*(1+ theta[["rain_amp"]]*sin((x - theta[["rain_shift"]])*2*pi/365) )  }
-seasonalrain_fit <- function(param,vals){ sum((seasonalrain(tt_actual,param) - vals)^2)  }
+tt_range2 = seq(start.date-7,start.date+800,1) # Create vector of times for moving average
 
-param = c(rain_amp=0.5, rain_base=210, rain_shift=10)
+# Interpolate between monthly averages
+yy_yearR_mean = sapply(tt_range2, function(x){ 
+                                  y = yy_yearR[which((x-15)==tt_range):which((x+15)==tt_range)] ; mean(y)
+                                  })
 
-#tt_numeric = as.numeric(seq(start.date,start.date+400,1) - start.date)
-#plot(tt_actual,yy_yearR)
-#lines(tt_numeric, seasonalrain(tt_numeric,param) )
+tt_actual2 = as.numeric(tt_range2 - start.date) + dt
 
-optim_rain = optim(param, seasonalrain_fit, method="L-BFGS-B",vals=yy_yearR, lower=c(rep(0,3)),upper=c(10,500,365), hessian=FALSE)$par
-theta_fitRain = c(rain_amp=optim_rain[["rain_amp"]], rain_base=optim_rain[["rain_base"]], rain_shift=optim_rain[["rain_shift"]])
+seasonalrain <- function(x,theta){ yy_yearR_mean[round(x)+1]  } # pick out relative entry
 
+#yy_yearR = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014$Date))); weather2014[y,"Rain_av"] })
 
-# Plot temperature fit (to check:
-#tt_numeric = as.numeric(seq(start.date,start.date+400,1) - start.date)
-# plot(tt_actual,yy_yearR)
-# lines(tt_actual, seasonalrain(tt_actual,theta_fitRain) )
-# lines(tt_numeric, seasonalrain(tt_numeric,theta_fitRain) )
-
+# seasonalrain <- function(x,theta){theta[["rain_base"]]*(1+ theta[["rain_amp"]]*sin((x - theta[["rain_shift"]])*2*pi/365) )  }
+# seasonalrain_fit <- function(param,vals){ sum((seasonalrain(tt_actual,param) - vals)^2)  }
+# 
+# param = c(rain_amp=0.5, rain_base=210, rain_shift=10)
+# optim_rain = optim(param, seasonalrain_fit, method="L-BFGS-B",vals=yy_yearR, lower=c(rep(0,3)),upper=c(10,500,365), hessian=FALSE)$par
+# theta_fitRain = c(rain_amp=optim_rain[["rain_amp"]], rain_base=optim_rain[["rain_base"]], rain_shift=optim_rain[["rain_shift"]])
 
 # - - - - - - - - 
 # Load Mordecai prior data
 
-bite_temp <- function(temp){briere(temp, 0.0002016267, 40.04363, 13.76252)} # scale to 1 bite per day average at 26C baseline
+bite_temp <- function(temp){briere(temp, 0.0002016267, 40.04363, 13.76252)} 
 EI_rate_temp <- function(temp){briere(temp, 6.111624e-05, 45.52661, 10.29733)/0.1102597} # scale to 10 day value at 26C baseline
 MD_rate_temp <- function(temp){briere(temp, 7.843086e-05, 39.10765, 11.56422)} 
 eggs_per_female_temp<- function(temp){briere(temp, 0.008154744, 34.44309,  14.78163)} 
@@ -114,16 +112,6 @@ mortality_rate_temp <- function(temp){ 1/(quad.2(temp, 9.023289, 37.66479, -0.14
 
 # Combined estimate of density change: eggs_per_female_temp * eggs_to_adult_temp * MD_rate_temp 
 density_vary <- function(temp){eggs_per_female_temp(temp)*eggs_to_adult_temp(temp)*MD_rate_temp(temp)/0.67275} # scale to 1 at 26C baseline
-
-# Plot values of different temperature variation
-
-# xx_temp_plot = seq(22,26,0.1)
-# plot(xx_temp_plot,bite_temp(xx_temp_plot),col="white",ylim=c(0,1.2))
-# lines(xx_temp_plot,bite_temp(xx_temp_plot)*prob_to_h_temp(xx_temp_plot)*density_vary(xx_temp_plot)/(bite_temp(26)*prob_to_h_temp(26)*density_vary(26)),col="blue")
-# lines(xx_temp_plot,bite_temp(xx_temp_plot)*prob_to_v_temp(xx_temp_plot)/(bite_temp(26)*prob_to_v_temp(26)),col="red")
-# lines(xx_temp_plot,mortality_rate_temp(xx_temp_plot),col="green")
-# lines(xx_temp_plot,EI_rate_temp(xx_temp_plot),col="grey")
-
 
 # - - - - - - - - 
 # Set up model characterists
@@ -152,22 +140,24 @@ if(use.ELISA.data == T){n_Luminex_C_D3 = n_ELISA_C_D; n_Luminex_A_D3 = n_ELISA_A
 # Dengue priors
 var_prior <- 0.5
 var_priorBeta <- 0.1
+
 # from Chan et al at 25C
-prior_p_VEx <- c(10,var_prior); prior_p_Exp <- c(5.9,var_prior); prior_p_MuV <- c(14,var_prior); prior_p_Inf <- c(5,var_prior)
+prior_p_Exp <- c(5.9,var_prior); 
+
+# from Mordecai et al function above
+prior_p_VEx <- c(10,var_prior); prior_p_MuV <- c(8,var_prior); prior_p_Inf <- c(5,var_prior)
 
 priorR0<-function(x){1+0*x} #dgamma(x,shape=prior_p_R0[1]/(prior_p_R0[2])+1, scale=prior_p_R0[2])}
 priorExp<-function(x){dgamma(x,shape=prior_p_Exp[1]/(prior_p_Exp[2]), scale=prior_p_Exp[2])} #1+0*x} #
 priorInf<-function(x){dgamma(x,shape=prior_p_Inf[1]/(prior_p_Inf[2]), scale=prior_p_Inf[2])} #1+0*x} #
 priorVEx<-function(x){dgamma(x,shape=prior_p_VEx[1]/(prior_p_VEx[2]), scale=prior_p_VEx[2])} #1+0*x} #
 priorMuV<-function(x){dgamma(x,shape=prior_p_MuV[1]/(prior_p_MuV[2]), scale=prior_p_MuV[2])} #1+0*x} #
-priorAmplitude<-function(x){dgamma(x,shape=((1-rel.temp)/(1+rel.temp))/(0.1*var_prior), scale=(0.1*var_prior))} # Have strong prior on amplitude
-priorDensity<-function(x){dgamma(x,shape=1/(var_prior), scale=(var_prior))} # Have weak prior on mosquito density
-priorBetaH2M<-function(x){dgamma(x,shape=1/(var_priorBeta), scale=(var_priorBeta))} # Have strong prior on beta 1 +0*x}
-priorBetaM2H<-function(x){dgamma(x,shape=1/(var_priorBeta), scale=(var_priorBeta))} # Have strong prior on beta 1+ 0*x}#
+priorDensity<-function(x){ifelse(x<100,1,0)} # Have weak prior on mosquito density
+
+priorBeta_v<-function(x){dgamma(x,shape=1/(var_priorBeta), scale=(var_priorBeta))} # beta_v
+priorBeta_h<-function(x){dgamma(x,shape=1/(var_priorBeta), scale=(var_priorBeta))} # beta_v
 
 priorAtRisk<-function(x){ifelse(x>0.8,1,0)} # Have strong prior on beta 1+ 0*x}#
-
-# plot(seq(0,5,0.1),priorBetaM2H(seq(0,5,0.1)))
 
 itertab <- c(1); itertabM=c(1) # Iterate over locations in set up and MCMC
 

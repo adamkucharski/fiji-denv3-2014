@@ -299,7 +299,7 @@ fit_ELISA_univariable <- function(inputs){ # use inputs from above fit_ELISA fun
   # Seroconversion only
   inputsFit01=inputsFit01[inputsFit01$ELISA1<=9,] # ONLY PICK FULLY SERONEGATIVE
   inputsFit01$AGE_U_20 = as.numeric(inputsFit01$AGE_2015<20) # Age under 18
-  inputsFit01$SEX = 1 - as.numeric(inputsFit01$SEX ) # Sex -  1=Female
+  inputsFit01$SEX = as.numeric(inputsFit01$SEX ) # Sex: 1 = Male
   
   modelB.1 <- glm(Dconvert ~ AGE_U_20 , data = inputsFit01,family = "binomial") # Age in 2015
   modelB.1a <- glm(Dconvert ~ SEX , data = inputsFit01,family = "binomial") # Sex (Female = 1)
@@ -586,12 +586,12 @@ remove_noise <- function(ELISA.fit=T){ # use inputs from above fit_ELISA functio
     n.total = length(pick.signal.prob)
     
     # Naive attack rate using seroconversion
-    sero.neg2013 = sum(inputs0[age.ID,"sero1"]==0)
-    sero.convert = sum(inputs0[age.ID,"sero1"]==0 & inputs0[age.ID,"sero2"]==1)
+    sero.neg2013 = sum(inputs0[age.ID,"ELISA1"]<=9)
+    sero.convert = sum(inputs0[age.ID,"ELISA1"]<=9 & inputs0[age.ID,"sero2"]==1)
 
     # Store data
-    bc1=binom.calc(round((n.signl.All-n.signl.Sec)),n.total)
-    bc2=binom.calc(round(n.signl.Sec),n.total)
+    bc1 = binom.distn.calc(n.signl.All/n.total,n.total)
+    
     if(sero.neg2013>0){
       bc3=binom.calc(sero.convert,sero.neg2013)
     }else{
@@ -599,7 +599,7 @@ remove_noise <- function(ELISA.fit=T){ # use inputs from above fit_ELISA functio
     }
 
     table.attack = rbind(table.attack,c(age.bins[ii], age.bins[ii+1], n.total, sum(age.ID2013),popn.tot, 1000*casesP.LL/popn.tot, 1000*casesS.LL/popn.tot, n.signl.All/n.total, (n.signl.All-n.signl.Sec)/n.total, n.signl.Sec/n.total, sero.neg2013, sero.convert,elisa1d,elisa2d,lumd3_1,lumd3_2,ltot ))
-    store.attack = rbind(store.attack,c(age.bins[ii], age.bins[ii+1], n.total, round(n.signl.All), bc1,sero.neg2013 ,sero.convert,bc3 ))
+    store.attack = rbind(store.attack,c(age.bins[ii], age.bins[ii+1], n.total, bc1,sero.neg2013 ,sero.convert,bc3 ))
 
     age.names = c(age.names,paste(age.bins[ii], (age.bins[ii+1]-1),sep="-"))
   }
@@ -608,10 +608,10 @@ remove_noise <- function(ELISA.fit=T){ # use inputs from above fit_ELISA functio
   names(table.attack) = c("age1","age2","N","N2013","pop","cases_P","cases_S","All_inf","Inf1","Inf2","seroneg","serocon","ELISA1","ELISA2","D3_1","D3_2","L_tot")
   table.attack0 = table.attack #[table.attack$N>1,]
   
-  store.attack = rbind(store.attack,c("Total","Total", sum(table.attack$N),round(sum(table.attack$N*table.attack$Inf1)), binom.calc(round(sum(table.attack$N*table.attack$Inf1)),sum(table.attack$N)),sum(table.attack$seroneg),sum(table.attack$serocon),binom.calc(sum(table.attack$serocon),sum(table.attack$seroneg) )))
+  store.attack = rbind(store.attack,c("Total","Total", sum(table.attack$N),binom.distn.calc(sum(table.attack$Inf1*table.attack$N)/sum(table.attack$N),sum(table.attack$N)),sum(table.attack$seroneg),sum(table.attack$serocon),binom.calc(sum(table.attack$serocon),sum(table.attack$seroneg) )))
   
   store.attack = store.attack %>% data.frame(stringsAsFactors=F)
-  names(store.attack) = c("age1","age2","N","Infect","Inf%","seroneg","serocon","sero%")
+  names(store.attack) = c("age1","age2","N","Inf%","seroneg","serocon","sero%")
   
   write.csv(store.attack,"plots/Table_4_estimate_attack.csv")
   #write.csv(table.attack0,"plots/seroprevalance_data.csv")
@@ -682,7 +682,7 @@ remove_noise <- function(ELISA.fit=T){ # use inputs from above fit_ELISA functio
 }
 
 
-# Function for binomial calculations
+# Functions for binomial calculations
 
 binom.calc <- function(x,n){
 
@@ -693,6 +693,18 @@ binom.calc <- function(x,n){
     paste(meanA,"% (",conf1,"-",conf2,"%)",sep="") 
 
 }
+
+binom.distn.calc <- function(p,n){
+  
+  xx = seq(0,n,0.0001)
+  yy = pbinom(xx,size=n,prob=p)
+  meanA=100*p  %>% signif(digits=3)
+  conf1=(100*max(xx[yy<0.025])/n) %>% signif(digits=3)
+  conf2=(100*max(xx[yy<=0.975])/n) %>% signif(digits=3)
+  paste(meanA,"% (",conf1,"-",conf2,"%)",sep="") 
+  
+}
+
 
 
 

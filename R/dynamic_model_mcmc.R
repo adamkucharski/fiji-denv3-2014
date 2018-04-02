@@ -12,7 +12,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
 
   multichain <- c(1:4) # run in parallel
   
-  # multichain=c(3)
+  # multichain=c(4); MCMC.runs=10
   
   foreach(iiM=multichain) %dopar% {  # Loop over scenarios with parallel MCMC chains
   #for(iiM in multichain){
@@ -48,8 +48,8 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
               r_inf=1/prior_p_Inf[1], # inf (h)
               v_exp=1/prior_p_VEx[1], # latent (v) # from Chan et al at 30C
               mu_v=1/prior_p_MuV[1], # mortality rate
-              prop_at_risk = 1,  # proportion of population who could be infected
-              #recruit_m=as.numeric(thetaR_IC[thetaR_IC$param=="recruit_m",2]), # mosquito recruitment
+              prop_at_risk = 1 , #as.numeric(thetaR_IC[thetaR_IC$param=="at_risk",2]),  # proportion of population who could be infected
+              m_density=as.numeric(thetaR_IC[thetaR_IC$param=="m_density",2]), # mosquito density
               beta2=as.numeric(thetaR_IC[thetaR_IC$param=="beta_h_2",2]), # baseline after control - jointly fitted
               beta3=as.numeric(thetaR_IC[thetaR_IC$param=="beta_h_3",2]), # DEPRECATED
               beta_v=as.numeric(thetaR_IC[thetaR_IC$param=="beta_v",2]), # Relative mixing M-to-H
@@ -174,7 +174,8 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
       iiH=1; source("R/load_timeseries_data.R",local=TRUE)
       time.valsSim=time.vals
       Simulate_model2(5, dt, c(theta,thetaAll[iiH,]), theta_initAll[iiH,], y.vals,y.vals2, y.vals.prop,time.valsSim,repTN,date_list,plotA=TRUE,locationI=locationtab[iiH])
-      
+      output1 = Deterministic_modelR(1,dt, c(theta,thetaAll[iiH,]), theta_initAll[iiH,], y.vals,y.vals2,y.vals.prop,time.valsSim,repTN,locationI=locationtab[1])
+      print( output1$lik)
     }
     
     
