@@ -14,8 +14,8 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
   
   # multichain=c(4); MCMC.runs=10
   
-  foreach(iiM=multichain) %dopar% {  # Loop over scenarios with parallel MCMC chains
-  #for(iiM in multichain){
+  #foreach(iiM=multichain) %dopar% {  # Loop over scenarios with parallel MCMC chains
+  for(iiM in multichain){
     
     # - - - - - - - - - - - 
     # Load relevant data
@@ -167,8 +167,6 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
     npcov_init[match(pmaskInit,names(theta_initAll[1,]) )]=0
     cov_matrix_theta_init0 = diag(npcov_init)
     
-    aa = Sys.time()
-    
     # Quick simulation to check looks OK
     if(length(multichain)==1){
       par(mfrow=c(1,1),mar=c(4,4,1,1),mgp=c(2,0.7,0))
@@ -179,10 +177,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
       #output1 = Deterministic_modelR(1,dt, c(theta,thetaAll[iiH,]), theta_initAll[iiH,], y.vals,y.vals2,y.vals.prop,time.valsSim,repTN,locationI=locationtab[1])
       
     }
-    
-    print(Sys.time()-aa)
-    
-    
+
     # - - - - - - - - - - - 
     # Set up matrices for MCMC run
     # - - - - - - - - - - -

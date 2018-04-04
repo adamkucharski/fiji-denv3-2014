@@ -34,7 +34,7 @@ source("R/dynamic_model_mcmc.R")
 # Fit model
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-serological.data = c(F,T)
+serological.data = c(F)
 
 aa = Sys.time()
 
@@ -46,7 +46,7 @@ for(s.type in serological.data){
   # Fit using 4 model types:
   # 1: SIR model cases  2: SIR model serology and cases  3: SIR + climate  4: SIR + climate + control
   
-  run_transmission_mcmc(MCMC.runs = 1e3,use.ELISA.data) # set number of MCMC runs   
+  run_transmission_mcmc(MCMC.runs = 1e2,use.ELISA.data) # set number of MCMC runs   
   
 }
 
