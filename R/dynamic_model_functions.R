@@ -353,8 +353,8 @@ simulate_deterministic <- function(theta, init.state, times) {
     density_scale <-  theta[["beta_v_mask"]]*carrying_f(time,0,theta) + (1-theta[["beta_v_mask"]])
     
     # Define vector-specific parameters
-    contact_rate <- theta[["beta_v"]] * bite_temp(temp_t) * decline_f(time,date0=theta[["shift_date"]],theta)  #
-    mosquito_to_human <- prob_to_h_temp(temp_t) * contact_rate * theta[["m_density"]] * density_vary(temp_t) * density_scale    # scale by density * rain_scale
+    contact_rate <- theta[["beta_v"]] * bite_temp(temp_t)  #
+    mosquito_to_human <- prob_to_h_temp(temp_t) * contact_rate * theta[["m_density"]] * density_vary(temp_t) * density_scale * decline_f(time,date0=theta[["shift_date"]],theta)     # scale by density * rain_scale
     human_to_mosquito <- prob_to_v_temp(temp_t) * contact_rate 
     delta_v  <- mortality_rate_temp(temp_t) *theta[["mu_v"]]
     recruit_v <-  delta_v 
