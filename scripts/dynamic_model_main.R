@@ -34,7 +34,9 @@ source("R/dynamic_model_mcmc.R")
 # Fit model
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-serological.data = c(F)
+serological.data = c(F,T)
+
+aa = Sys.time()
 
 # Fit models to two types of serological data
 for(s.type in serological.data){
@@ -48,6 +50,7 @@ for(s.type in serological.data){
   
 }
 
+print(Sys.time() - aa)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # Plot figures and outputs - Before plotting, need to define: use.ELISA.data = T or F

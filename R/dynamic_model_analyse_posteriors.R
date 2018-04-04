@@ -84,7 +84,10 @@ plot_posteriors<-function(p_pick=4){
       hist(thetatab$beta_c_grad[picks],xlab=expression('a'[1]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
       
       hist(thetatab$beta_c_base[picks],xlab=expression('a'[2]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
-      hist(thetatab$beta_c_mid[picks],xlab=expression('a'[tau]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
+      
+      control_mid = ( control.range /( 1 + exp(-10*(thetatab$beta_c_mid[picks] -1))))*365
+      
+      hist(control_mid,xlab=expression('a'[tau]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
       
       hist(thetatab$repR[picks],xlab="propn cases reported (lab)",main=NULL,border=colB,col=colW,prob=TRUE)
       hist(thetatab$repRA[picks],xlab="propn cases reported (DLI)",main=NULL,border=colB,col=colW,prob=TRUE)
@@ -92,7 +95,7 @@ plot_posteriors<-function(p_pick=4){
       hist(thetatab$repvol[picks],xlab="reporting dispersion",main=NULL,border=colB,col=colW,prob=TRUE)
       #hist(thetatab$repvolA[picks],xlab="reporting dispersion (2)",main=NULL,border=colB,col=colW,prob=TRUE)
 
-      hist(thetatab$temp_balance[picks],xlab="temperature mid",prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
+      #hist(thetatab$temp_balance[picks],xlab="temperature mid",prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
       
       
       #hist(thetatab$repvol[picks],xlab=expression(phi),main=NULL,col=rgb(0.5,0.8,1),prob=TRUE)
@@ -116,9 +119,10 @@ plot_posteriors<-function(p_pick=4){
       
 
       # PLOT Parameter correlations
-      param.names = c("beta","beta_v","beta_v_amp","beta_c_grad","beta_c_base","beta_c_mid"); # beta_c_base is base level
-      param.labels = c(expression(beta[h]),expression(beta[v]),expression('a'[0]),expression('a'[1]),expression('a'[2]),expression('a'[tau]))
-
+      param.names = c("m_density","beta_v","beta_v_amp","beta2","beta_c_grad","beta_c_base","beta_c_mid"); # beta_c_base is base level
+      #param.labels = c(expression(beta[h]),expression(beta[v]),expression('rain amp'),expression('a'[1]),expression('a'[2]),expression('a'[tau]))
+      param.labels = c("density","contact rate",expression('rain amp'),"rain base",expression('a'[1]),expression('a'[2]),expression('a'[tau]))
+      
       par(mfcol=c(length(param.names),length(param.names)))
       par(mar = c(3,3,1,1),mgp=c(1.8,0.5,0))
       
@@ -210,15 +214,21 @@ plot_weather_and_control <- function(){
   source("R/load_posterior_single.R",local=TRUE)
   source("R/load_timeseries_data.R",local=TRUE)
   
+  xRange = c(as.Date("2013-11-04"),as.Date("2015-10-16"))
+  date_listSeason = seq(min(xRange),max(xRange),7)
+  
   locnnLoop=1
   
   par(mfrow=c(3,3),mgp=c(2,0.7,0),mar = c(3,3,1,1))
 
   # PLOT WEATHER
-  xRange = c(as.Date("2013-11-01"),as.Date("2014-11-01")) # DATE OF SAMPLE COLLECTION
-  weather.date = as.Date(weather.data$Date) + 15
+  xRange = c(as.Date("2013-11-01"),as.Date("2014-11-01")) 
+  weather.date = as.Date(weather.data$Date) + 15 # Select weather data
   
-  plot(weather.date,weather.data$Rain_av,type="l",lty=1,col="blue",xlab="",ylim=c(0,500),ylab="rainfall (mm) ",lwd=0,xlim=xRange)
+  tt_actualD = (seq(start.date-7,start.date+400,1) )
+  tt_actualN = (tt_actualD - (start.date-7)) %>% as.numeric() # Convert to numeric
+
+  plot(weather.date,weather.data$Rain_av,type="l",lty=1,col="blue",xlab="2013/14",ylim=c(0,500),ylab="rainfall (mm) ",lwd=0,xlim=xRange)
   for(ii in 1:(length(weather.data$Rain_av)/12)-1){ 
     lines(weather.date+365*ii,weather.data$Rain_av,type="l",lty=1,col=rgb(0,0,1,0.2),xaxs="i",lwd=1)
   }
@@ -230,28 +240,26 @@ plot_weather_and_control <- function(){
   # }
   #lines(weather.date,weather.data$Av_temp,type="l",lty=1,col=rgb(1,0,0),xaxs="i",lwd=2)
   
-  plot(weather.data.daily$date,weather.data.daily$min_air_temp,type="l",lty=1,col="orange",xlab="",ylab="temperature (°C)",lwd=1,ylim=c(17,35),xlim=xRange)
-  lines(weather.data.daily$date,weather.data.daily$max_air_temp,type="l",lty=1,col="red",lwd=1)
+  plot(weather.data.daily$date,weather.data.daily$min_air_temp/2+weather.data.daily$max_air_temp/2,type="l",lty=1,col="orange",xlab="2013/14",ylab="temperature (°C)",lwd=1,ylim=c(17,35),xlim=xRange)
+  #lines(weather.data.daily$date,weather.data.daily$max_air_temp,type="l",lty=1,col="red",lwd=1)
   
+  lines(tt_actualD,seasonaltemp(tt_actualN,theta_fit1))
   
-  
+  # Weather range
+  mean_temp = weather.data.daily$min_air_temp/2+weather.data.daily$max_air_temp/2
+
   # PLOT CONTROL
   # - ADD, date_listSeason
   thetaBASE = c(beta_v_mask=1,beta_c_mask=1,beta_c_base=0.5,beta_c_grad=10,beta_c_mid=0.9)
-  
-  xRange = c(as.Date("2013-11-04"),as.Date("2015-10-16"))
-  
-  date_listSeason = seq(min(xRange),max(xRange),7)
-
-  plot(date_listSeason,decline_f(as.numeric(date_listSeason-min(date_listSeason)+7),date0=0,thetaBASE),type="l",xlab="date",ylab="relative transmission",col=rgb(0,0.6,0.3),lwd=2,ylim=c(0,2))
+  plot(date_listSeason,decline_f(as.numeric(date_listSeason-min(date_listSeason)+7),date0=0,thetaBASE),type="l",xlim=xRange,xlab="2013/14",ylab="relative transmission",col=rgb(0,0.6,0.3),lwd=2,ylim=c(0,2))
   lines(c(min(xRange),max(xRange)),c(1,1),lty=2)
   polygon(c(as.Date("2014-03-08"),as.Date("2014-03-08"),as.Date("2014-03-22"),as.Date("2014-03-22")),c(-1,1e4,1e4,-1),col=rgb(1,0,0,0.2),lty=0)
   title(main=LETTERS[4],adj=0)
   
   
   # Plot vector parameters
-  temp_plot = seq(15,35,1)
-  weather_range = c(min(weather2014.daily$min_air_temp),max(weather2014.daily$max_air_temp))
+  temp_plot = seq(20,30,0.1)
+  weather_range = c(min(mean_temp[weather.data.daily$date<=as.Date("2014-10-01")]),max(mean_temp[weather.data.daily$date<=as.Date("2014-10-01")]))
   
   bite_temp(temp_plot)
   EI_rate_temp(temp_plot)
@@ -330,9 +338,9 @@ model_comparison <- function( compareN = c(2:4) ){
     output1 = Deterministic_modelR(1,dt, thetatab[pick.max,], theta_inittab[pick.max,], y.vals,y.vals2,y.vals.prop,time.vals,repTN,locationI=locationtab[1])
     print( output1$lik)
     
-    # Set mean parameters and incorporate initial conditions
-    theta_init_mean = apply(theta_initAlltab[picks,iiH,],2,mean)
-    theta_mean = apply(thetatab,2,mean)
+    # Calculate median parameters and incorporate initial conditions
+    theta_init_mean = apply(theta_initAlltab[picks,iiH,],2,median)
+    theta_mean = apply(thetatab,2,median)
     
     theta_init_mean[["s_initC"]] = theta_mean[["npopC"]] - theta_init_mean[["e_initC"]] - theta_init_mean[["i1_initC"]] - theta_init_mean[["r_initC"]]
     theta_init_mean[["s_initA"]] = theta_mean[["npopA"]] - theta_init_mean[["e_initA"]] - theta_init_mean[["i1_initA"]] - theta_init_mean[["r_initA"]]

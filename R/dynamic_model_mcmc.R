@@ -49,7 +49,6 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
               v_exp=1/prior_p_VEx[1], # latent (v) # from Chan et al at 30C
               mu_v=1/prior_p_MuV[1], # mortality rate
               prop_at_risk = 1,  # proportion of population who could be infected
-              temp_balance = as.numeric(thetaR_IC[thetaR_IC$param=="temp_balance",2]),  # temperature balance
               m_density=as.numeric(thetaR_IC[thetaR_IC$param=="m_density",2]), # mosquito density
               beta2=as.numeric(thetaR_IC[thetaR_IC$param=="beta_h_2",2]), # baseline after control - jointly fitted
               beta3=as.numeric(thetaR_IC[thetaR_IC$param=="beta_h_3",2]), # DEPRECATED
@@ -168,6 +167,8 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
     npcov_init[match(pmaskInit,names(theta_initAll[1,]) )]=0
     cov_matrix_theta_init0 = diag(npcov_init)
     
+    aa = Sys.time()
+    
     # Quick simulation to check looks OK
     if(length(multichain)==1){
       par(mfrow=c(1,1),mar=c(4,4,1,1),mgp=c(2,0.7,0))
@@ -175,9 +176,11 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
       iiH=1; source("R/load_timeseries_data.R",local=TRUE)
       time.valsSim=time.vals
       Simulate_model2(5, dt, c(theta,thetaAll[iiH,]), theta_initAll[iiH,], y.vals,y.vals2, y.vals.prop,time.valsSim,repTN,date_list,plotA=TRUE,locationI=locationtab[iiH])
-      output1 = Deterministic_modelR(1,dt, c(theta,thetaAll[iiH,]), theta_initAll[iiH,], y.vals,y.vals2,y.vals.prop,time.valsSim,repTN,locationI=locationtab[1])
-      print( output1$lik)
+      #output1 = Deterministic_modelR(1,dt, c(theta,thetaAll[iiH,]), theta_initAll[iiH,], y.vals,y.vals2,y.vals.prop,time.valsSim,repTN,locationI=locationtab[1])
+      
     }
+    
+    print(Sys.time()-aa)
     
     
     # - - - - - - - - - - - 

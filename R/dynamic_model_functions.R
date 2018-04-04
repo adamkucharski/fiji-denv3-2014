@@ -49,7 +49,7 @@ calculate_r0 <- function(th_in,sus_c=1,sm_c=1,t_vary=1,controlT=1){
   rain_scale = th_in$beta_v_mask*carrying_f(t_vary,0,th_in) + (1-th_in$beta_v_mask)
   
   
-  temp_t =  th_in$beta_v_mask*seasonal_f(t_vary,date0=0,th_in) + (1-th_in$beta_v_mask)*26
+  temp_t =  th_in$beta_v_mask*seasonal_f(t_vary,th_in) + (1-th_in$beta_v_mask)*26
   
   contact_rate = th_in$beta_v * bite_temp(temp_t) * (controlT*decline_f(t_vary,date0=th_in$shift_date,th_in) +(1-controlT))
   
@@ -149,9 +149,6 @@ SampleTheta<-function(theta_in, theta_init_in,m,covartheta,covartheta_init,singl
     theta_star[["repR"]]=min(theta_star[["repR"]],2-theta_star[["repR"]]) # Ensure reporting between zero and 1
   }
   
-  if(sum(names(theta_star)=="temp_balance")>0){ # check theta contains this vector
-    theta_star[["temp_balance"]]=min(theta_star[["temp_balance"]],2-theta_star[["temp_balance"]]) # Seasonality temperature pick
-  }
   
   if(sum(names(theta_star)=="prop_at_risk")>0){ # check theta contains this vector
     theta_star[["prop_at_risk"]]=min(theta_star[["prop_at_risk"]],2-theta_star[["prop_at_risk"]]) # Ensure at risk group between zero and 1
@@ -232,9 +229,10 @@ sigmf <- function(x,x0,k){exp(-(x-x0)/k)/(1+exp(-(x-x0)/k))^2}
 sigmd1 <- function(x,x0){as.numeric(x>x0)} #as.numeric(x>x0)
 
 # Seasonality function
-seasonal_f <- function(x,date0,theta){
+seasonal_f <- function(x,theta){
   #yy = (1 + theta[["beta_v_mask"]]*theta[["beta_v_amp"]]*sin(((x+date0)/365- season.shift )*2*pi)) 
-  yy = (1-theta[["temp_balance"]])*seasonaltemp(x,theta_fit1) + theta[["temp_balance"]]*seasonaltemp(x,theta_fit2)
+  #yy = (1-theta[["temp_balance"]])*seasonaltemp(x,theta_fit1) + theta[["temp_balance"]]*seasonaltemp(x,theta_fit2)
+  yy = seasonaltemp(x,theta_fit1) 
   yy
 }
 
@@ -274,6 +272,7 @@ Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,y.vals2, y.vals.p
   
   output <- Deterministic_modelR(1,dt,theta, theta_init, y.vals,y.vals2, y.vals.prop, time.vals,repTab,locationI)
 
+  print( output$lik)
   
   if(plotA==T){
     
@@ -307,7 +306,7 @@ Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,y.vals2, y.vals.p
     xxmin = min(time.vals)
     xxlength = xxmax - xxmin +1
 
-    plot(min(date_list)+c(xxmin:xxmax) -xxmin   ,seasonal_f(c(xxmin:xxmax),date0 = theta[["shift_date"]],theta),type="l",col="red",xaxt="n",yaxt="n",xlab="",ylab="",ylim=c(20,30),xlim=c(min(date_list),xmax))
+    plot(min(date_list)+c(xxmin:xxmax) -xxmin   ,seasonal_f(c(xxmin:xxmax),theta),type="l",col="red",xaxt="n",yaxt="n",xlab="",ylab="",ylim=c(20,30),xlim=c(min(date_list),xmax))
     lines(min(date_list)+c(xxmin:xxmax) -xxmin  ,sapply(c(xxmin:xxmax),function(x){20+5*decline_f(x,date0 = theta[["shift_date"]],theta)}) ,type="l",col="orange",xaxt="n",yaxt="n",xlab="",ylab="")
 
     axis(4,col="red",col.axis="red")
@@ -348,9 +347,9 @@ Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,y.vals2, y.vals.p
 # Simulation model ODE
 simulate_deterministic <- function(theta, init.state, times) {
   SIR_ode <- function(time, state, theta) {
-    
+
     # Define temperature and variable carrying capacity
-    temp_t <-  theta[["beta_v_mask"]]*seasonal_f(time,date0=0,theta) + (1-theta[["beta_v_mask"]])*26
+    temp_t <-  theta[["beta_v_mask"]]*seasonal_f(time,theta) + (1-theta[["beta_v_mask"]])*26
     density_scale <-  theta[["beta_v_mask"]]*carrying_f(time,0,theta) + (1-theta[["beta_v_mask"]])
     
     # Define vector-specific parameters
@@ -386,8 +385,6 @@ simulate_deterministic <- function(theta, init.state, times) {
     RA <- state[["r_initA"]]
     CA <- state[["c_initA"]] 
     
-    SMA <- state[["sm_initA"]]
-    
     # Allow potential for extinction if not enough infected humans (deprecated)
 
     ICpos = 1 #sigmd1(IC,1) # Need at least one infective
@@ -416,13 +413,9 @@ simulate_deterministic <- function(theta, init.state, times) {
     dEMC = Ipos*SMC*(beta_v1*IC + beta_v1*IA)/(NsizeC + NsizeA) - (delta_v+alpha_v)*EMC 
     dIMC = alpha_v*EMC - delta_v*IMC
 
-    # Larvae population (deprecated)
-    
-    dSMA =  0 #larvae_b*Nmsize - larvae_dev*SMA - larvae_mu*SMA*(1+ SMA/larvae_carrying)
-    
     # Output values
     return(list(c(dSC,dEC,dIC,dRC,dCC,dSMC,dEMC,dIMC,
-                  dSA,dEA,dIA,dRA,dCA,dSMA)))
+                  dSA,dEA,dIA,dRA,dCA)))
   }
   
   # Put incidence at 0 in init.state
@@ -439,7 +432,7 @@ Deterministic_modelR<-function(iiN,dt,theta, theta_init, y.vals, y.vals2, y.vals
   init1=c(
     s_initC=theta_init[["s_initC"]],e_initC=theta_init[["i1_initC"]],i_initC=theta_init[["i1_initC"]],r_initC=theta_init[["r_initC"]],c_initC=0,
     sm_initC=theta_init[["sm_initC"]],em_initC=theta_init[["em_initC"]],im_initC=theta_init[["im_initC"]],
-    s_initA=theta_init[["s_initA"]],e_initA=theta_init[["i1_initA"]],i_initA=theta_init[["i1_initA"]],r_initA=theta_init[["r_initA"]],c_initA=0,sm_initA=theta_init[["sm_initA"]])
+    s_initA=theta_init[["s_initA"]],e_initA=theta_init[["i1_initA"]],i_initA=theta_init[["i1_initA"]],r_initA=theta_init[["r_initA"]],c_initA=0)
 
   # Output simulation data
   output <- simulate_deterministic(theta,init1,seq(0,max(sim.vals),dt) )

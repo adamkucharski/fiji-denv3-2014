@@ -37,7 +37,8 @@ weather2014 = weather.data[weather.data$Date >= as.Date("2013-10-01") &weather.d
 weather.data.daily = read.csv(paste("data/data_Fiji_climate_daily.csv",sep=""), stringsAsFactors = F) %>% data.frame() # Load daily temperature data
 weather.data.daily$date = as.Date(weather.data.daily$date)
 
-weather2014.daily = weather.data.daily[weather.data.daily$date >= as.Date("2013-11-01") &weather.data.daily$date<= as.Date("2014-11-01"),] # select relevant dates
+weather2014.daily = weather.data.daily[weather.data.daily$date >= as.Date("2013-10-20") &weather.data.daily$date<= as.Date("2016-11-01"),] # select relevant dates
+#weather2014.daily = weather.data.daily[weather.data.daily$date >= as.Date("2013-10-28") &weather.data.daily$date<= as.Date("2014-11-01"),] # select relevant dates
 
 #plot(weather2014.daily$lsd,weather2014.daily$min_air_temp+ (weather2014.daily$max_air_temp-weather2014.daily$max_air_temp)/2,type="l")
 
@@ -48,27 +49,48 @@ weather2014.daily = weather.data.daily[weather.data.daily$date >= as.Date("2013-
 #tt_range = as.Date(weather2014$Date) + 15
 #yy_year = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014$Date))); weather2014[y,"Av_temp"] })
 
-tt_range = as.Date(weather2014.daily$date) 
-yy_year1 = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014.daily$date))); weather2014.daily[y,"min_air_temp"]}) # + (weather2014.daily[y,"max_air_temp"]-weather2014.daily[y,"min_air_temp"])/2 })
-yy_year2 = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014.daily$date))); weather2014.daily[y,"max_air_temp"]}) # + (weather2014.daily[y,"max_air_temp"]-weather2014.daily[y,"min_air_temp"])/2 })
+tt_range = as.Date(weather2014.daily$date) # Date range
+tt_actual = as.numeric(tt_range - start.date) + 7 # Convert to numeric and adjust for for dt in fitting
+
+# Define temperature timeseries
+yy_year1 = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014.daily$date))); weather2014.daily[y,"min_air_temp"] + (weather2014.daily[y,"max_air_temp"]-weather2014.daily[y,"min_air_temp"])/2 })
+#yy_year2 = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014.daily$date))); weather2014.daily[y,"max_air_temp"]}) # + (weather2014.daily[y,"max_air_temp"]-weather2014.daily[y,"min_air_temp"])/2 })
 
 
-# Adjust for dt
-tt_actual = as.numeric(tt_range - start.date) + dt
+# Use actual data
+tt_range2 = seq(start.date-7,start.date+800,1) # All dates
+yy_yearT_mean = sapply(tt_range2, function(x){ y = yy_year1[which(x==(tt_range-7)):which(x==tt_range)]; mean(y) })
+seasonaltemp <- function(x,theta){ yy_yearT_mean[round(x)+1]  } # pick out relative entry
+
+
+# tt_range_week = seq(start.date-7,start.date+800,7) # All dates
+# yy_yearT_week = sapply(tt_range_week, function(x){ y = yy_year1[which(x>=tt_range & x<(tt_range+7) )]; mean(y) })
+# 
+# yy_yearT_1 = sapply(tt_range2, function(x){ y = max(which(x>=as.Date(tt_range_week))); yy_yearT_week[y] })
+# 
+# yy_yearT_mean = sapply(tt_range2, function(x){ 
+#   y = yy_yearT_1[which((x-3)==tt_range):which((x+3)==tt_range)] ; mean(y)
+# })
+# 
+# seasonaltemp <- function(x,theta){ yy_yearT_mean[round(x)+1]  } # pick out relative entry
+
+
+
+
 
 # - - - - -
 # Define temperature function via sin function
-seasonaltemp <- function(x,theta){theta[["temp_base"]]*(1+ theta[["temp_amp"]]*sin((x - theta[["temp_shift"]])*2*pi/365) )  }
-seasonaltemp_fit <- function(param,vals){ sum((seasonaltemp(tt_actual,param) - vals)^2)  }
-
-# Fit sine function to temperature
-param = c(temp_amp=0.1, temp_base=24, temp_shift=10)
-optim_temp1 = optim(param, seasonaltemp_fit, method="L-BFGS-B",vals=yy_year1, lower=c(rep(0,3)),upper=c(1,30,365), hessian=FALSE)$par
-theta_fit1 = c(temp_amp=optim_temp1[["temp_amp"]], temp_base=optim_temp1[["temp_base"]], temp_shift=optim_temp1[["temp_shift"]])
-
-optim_temp2 = optim(param, seasonaltemp_fit, method="L-BFGS-B",vals=yy_year2, lower=c(rep(0,3)),upper=c(1,30,365), hessian=FALSE)$par
-theta_fit2 = c(temp_amp=optim_temp2[["temp_amp"]], temp_base=optim_temp2[["temp_base"]], temp_shift=optim_temp2[["temp_shift"]])
-
+# seasonaltemp <- function(x,theta){theta[["temp_base"]]*(1+ theta[["temp_amp"]]*sin((x - theta[["temp_shift"]])*2*pi/365) )  }
+# seasonaltemp_fit <- function(param,vals){ sum((seasonaltemp(tt_actual,param) - vals)^2)  } # Compare estimate and fit
+# 
+# # Fit sine function to temperature
+# param = c(temp_amp=0.1, temp_base=24, temp_shift=10)
+# optim_temp1 = optim(param, seasonaltemp_fit, method="L-BFGS-B",vals=yy_year1, lower=c(rep(0,3)),upper=c(1,30,365), hessian=FALSE)$par
+# theta_fit1 = c(temp_amp=optim_temp1[["temp_amp"]], temp_base=optim_temp1[["temp_base"]], temp_shift=optim_temp1[["temp_shift"]])
+# 
+# optim_temp2 = optim(param, seasonaltemp_fit, method="L-BFGS-B",vals=yy_year2, lower=c(rep(0,3)),upper=c(1,30,365), hessian=FALSE)$par
+# theta_fit2 = c(temp_amp=optim_temp2[["temp_amp"]], temp_base=optim_temp2[["temp_base"]], temp_shift=optim_temp2[["temp_shift"]])
+# 
 
 # Plot temperature fit (to check:
 tt_numeric = as.numeric(seq(start.date,start.date+300,1) - start.date)
@@ -88,7 +110,7 @@ yy_yearR_mean = sapply(tt_range2, function(x){
                                   y = yy_yearR[which((x-15)==tt_range):which((x+15)==tt_range)] ; mean(y)
                                   })
 
-tt_actual2 = as.numeric(tt_range2 - start.date) + dt
+tt_actual2 = as.numeric(tt_range2 - start.date) + 7
 
 seasonalrain <- function(x,theta){ yy_yearR_mean[round(x)+1]  } # pick out relative entry
 
@@ -155,7 +177,7 @@ priorExp<-function(x){dgamma(x,shape=prior_p_Exp[1]/(prior_p_Exp[2]), scale=prio
 priorInf<-function(x){dgamma(x,shape=prior_p_Inf[1]/(prior_p_Inf[2]), scale=prior_p_Inf[2])} #1+0*x} #
 priorVEx<-function(x){dgamma(x,shape=prior_p_VEx[1]/(prior_p_VEx[2]), scale=prior_p_VEx[2])} #1+0*x} #
 priorMuV<-function(x){dgamma(x,shape=prior_p_MuV[1]/(prior_p_MuV[2]), scale=prior_p_MuV[2])} #1+0*x} #
-priorDensity<-function(x){ifelse(x<100,1,0)} # Have weak prior on mosquito density
+priorDensity<-function(x){ifelse(x<20,1,0)} # Have weak prior on mosquito density
 
 priorBeta_v<-function(x){dgamma(x,shape=1/(var_priorBeta), scale=(var_priorBeta))} # beta_v
 priorBeta_h<-function(x){dgamma(x,shape=1/(var_priorBeta), scale=(var_priorBeta))} # beta_v

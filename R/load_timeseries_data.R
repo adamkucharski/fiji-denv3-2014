@@ -26,7 +26,7 @@ time.vals = time.vals+time.vals[2]-time.vals[1] # adjust if first value non zero
 shift_to_nov = (min(date_list) - start.date - 7) %>% as.numeric() # Adjust so seasonality matches #(firstentry-1) * 7 # No longer needed as start date fixed
 
 add.null.dates = ((sample.collection.date - ( min(date_list) + max(time.vals) ) )/7) %>% ceiling() %>% as.numeric()  # Up to start of serosurvey -- 16/10/15
-#add.null.dates = ((as.Date("2014-09-22") - ( min(date_list) + max(time.vals) ) )/7) %>% ceiling() %>% as.numeric()  # Up to start of serosurvey -- 16/10/15
+#add.null.dates = 1 # Only need one additional week
 
 #add.null.dates = 10 # Only fit to end point
 
