@@ -27,8 +27,8 @@ timeser14_All = timeser14_All[timeser14_All$date < cutt.date,]
 timeser14_Sus = timeser14_Sus[timeser14_Sus$date < cutt.date,] 
 timeser14_Sus$Central = timeser14_Sus$Central - timeser14_All$Central
 
-# Omit initial wave of DLI cases:
-timeser14_Sus[timeser14_Sus$date<"2014-01-13","Central"]=0
+# Omit initial wave of DLI cases, as before changeover:
+timeser14_Sus[timeser14_Sus$date<"2014-02-01","Central"]=0
 
 # Set up weather fluctuation prior
 weather.data = read.csv(paste("data/data_Fiji_climate.csv",sep=""), stringsAsFactors = F) # Load climate data
@@ -37,7 +37,7 @@ weather2014 = weather.data[weather.data$Date >= as.Date("2013-10-01") &weather.d
 weather.data.daily = read.csv(paste("data/data_Fiji_climate_daily.csv",sep=""), stringsAsFactors = F) %>% data.frame() # Load daily temperature data
 weather.data.daily$date = as.Date(weather.data.daily$date)
 
-weather2014.daily = weather.data.daily[weather.data.daily$date >= as.Date("2013-10-20") &weather.data.daily$date<= as.Date("2016-11-01"),] # select relevant dates
+weather2014.daily = weather.data.daily[weather.data.daily$date >= as.Date("2013-10-01") &weather.data.daily$date<= as.Date("2016-11-01"),] # select relevant dates
 #weather2014.daily = weather.data.daily[weather.data.daily$date >= as.Date("2013-10-28") &weather.data.daily$date<= as.Date("2014-11-01"),] # select relevant dates
 
 #plot(weather2014.daily$lsd,weather2014.daily$min_air_temp+ (weather2014.daily$max_air_temp-weather2014.daily$max_air_temp)/2,type="l")
@@ -126,17 +126,19 @@ seasonalrain <- function(x,theta){ yy_yearR_mean[round(x)+1]  } # pick out relat
 # - - - - - - - - 
 # Load Mordecai prior data
 
-bite_temp <- function(temp){briere(temp, 0.0002016267, 40.04363, 13.76252)} 
-EI_rate_temp <- function(temp){briere(temp, 6.111624e-05, 45.52661, 10.29733)/0.1102597} # scale to 10 day value at 26C baseline
+
+EI_rate_temp <- function(temp){briere(temp, 6.111624e-05, 45.52661, 10.29733)/0.1017774} # scale to 1 at 25C baseline
+mortality_rate_temp <- function(temp){ 1/(quad.2(temp, 9.023289, 37.66479, -0.143324)/29.00042 ) } # scale to 1 at 25C baseline
+
+bite_temp <- function(temp){briere(temp, 0.0002016267, 40.04363, 13.76252)/0.2197016} # scale to 1 at 25C baseline
 MD_rate_temp <- function(temp){briere(temp, 7.843086e-05, 39.10765, 11.56422)} 
 eggs_per_female_temp<- function(temp){briere(temp, 0.008154744, 34.44309,  14.78163)} 
 eggs_to_adult_temp <- function(temp){quad.2.trunc(temp, 13.58271, 38.288, -0.005985752)}
 prob_to_h_temp <- function(temp){briere.trunc(temp, 0.0008328726, 35.77916, 17.22666)}
 prob_to_v_temp <- function(temp){briere.trunc(temp, 0.0004880121, 37.38162, 12.67096)}
-mortality_rate_temp <- function(temp){ 1/(quad.2(temp, 9.023289, 37.66479, -0.143324)/28.38242 ) } # scale to value at 26C baseline
 
 # Combined estimate of density change: eggs_per_female_temp * eggs_to_adult_temp * MD_rate_temp 
-density_vary <- function(temp){eggs_per_female_temp(temp)*eggs_to_adult_temp(temp)*MD_rate_temp(temp)/0.67275} # scale to 1 at 26C baseline
+density_vary <- function(temp){eggs_per_female_temp(temp)*eggs_to_adult_temp(temp)*MD_rate_temp(temp)/0.5752381} # scale to 1 at 25C baseline
 
 # - - - - - - - - 
 # Set up model characterists
@@ -172,6 +174,8 @@ prior_p_Exp <- c(5.9,var_prior);
 # from Mordecai et al function above
 prior_p_VEx <- c(10,var_prior); prior_p_MuV <- c(8,var_prior); prior_p_Inf <- c(5,var_prior)
 
+prior_betaV <- c(0.25,var_priorBeta)
+
 priorR0<-function(x){1+0*x} #dgamma(x,shape=prior_p_R0[1]/(prior_p_R0[2])+1, scale=prior_p_R0[2])}
 priorExp<-function(x){dgamma(x,shape=prior_p_Exp[1]/(prior_p_Exp[2]), scale=prior_p_Exp[2])} #1+0*x} #
 priorInf<-function(x){dgamma(x,shape=prior_p_Inf[1]/(prior_p_Inf[2]), scale=prior_p_Inf[2])} #1+0*x} #
@@ -179,7 +183,7 @@ priorVEx<-function(x){dgamma(x,shape=prior_p_VEx[1]/(prior_p_VEx[2]), scale=prio
 priorMuV<-function(x){dgamma(x,shape=prior_p_MuV[1]/(prior_p_MuV[2]), scale=prior_p_MuV[2])} #1+0*x} #
 priorDensity<-function(x){ifelse(x<20,1,0)} # Have weak prior on mosquito density
 
-priorBeta_v<-function(x){dgamma(x,shape=1/(var_priorBeta), scale=(var_priorBeta))} # beta_v
+priorBeta_v<-function(x){dgamma(x,shape=prior_betaV[1]/prior_betaV[2], scale=prior_betaV[2])} # beta_v
 priorBeta_h<-function(x){dgamma(x,shape=1/(var_priorBeta), scale=(var_priorBeta))} # beta_v
 
 priorAtRisk<-function(x){ifelse(x>0.8,1,0)} # Have strong prior on beta 1+ 0*x}#

@@ -154,20 +154,19 @@ SampleTheta<-function(theta_in, theta_init_in,m,covartheta,covartheta_init,singl
     theta_star[["prop_at_risk"]]=min(theta_star[["prop_at_risk"]],2-theta_star[["prop_at_risk"]]) # Ensure at risk group between zero and 1
   }
   
-  # if(sum(names(theta_star)=="beta_v_amp")>0){
-  #   theta_star[["beta_v_amp"]]=min(theta_star[["beta_v_amp"]],2-theta_star[["beta_v_amp"]]) # Ensure seasonality amplitude between zero and 1
-  # }
+  if(sum(names(theta_star)=="beta_v_amp")>0){
+    theta_star[["beta_v_amp"]]=min(theta_star[["beta_v_amp"]],200-theta_star[["beta_v_amp"]]) # Ensure rainfall effect between zero and 100
+  }
+  
+  if(sum(names(theta_star)=="beta_c_grad")>0){
+    theta_star[["beta_c_grad"]]=min(theta_star[["beta_c_grad"]],200-theta_star[["beta_c_grad"]]) # Ensure control gradient between zero and 1000
+  }
   
   if(sum(names(theta_star)=="beta_c_base")>0){
     theta_star[["beta_c_base"]]=min(theta_star[["beta_c_base"]],2-theta_star[["beta_c_base"]]) # Ensure amplitude between zero and 1
     theta_star[["beta_c_base2"]]=min(theta_star[["beta_c_base2"]],2-theta_star[["beta_c_base2"]]) # Ensure amplitude between zero and 1
   }
-  
-  # if(sum(names(theta_star)=="beta2")>0){
-  #   theta_star[["beta2"]]=min(theta_star[["beta2"]],2-theta_star[["beta2"]]) # Ensure beta is between zero and 1
-  #   theta_star[["beta3"]]=min(theta_star[["beta3"]],2-theta_star[["beta3"]]) # Ensure beta is between zero and 1
-  # }
-  
+
   if(!is.null(singleI)){
     theta_star[pmask] = theta_in[pmask] # Replace masked values (some may be negative)
   }
@@ -247,7 +246,7 @@ carrying_f <- function(x,date0,theta){
   
   #theta[["beta2"]]=1; theta[["beta_v_amp"]]=1;
   
-  yy = 1/(1+1/(theta[["beta2"]] + theta[["beta_v_amp"]]*seasonalrain(x,theta_fitRain)/221.2756)) # Scale to oscillate around 1
+  yy = 1/(1+1/(0 + theta[["beta_v_amp"]]*seasonalrain(x,theta_fitRain)/221.2756)) # Scale to oscillate around 1 # theta[["beta2"]]
   
   yy = yy[yy>0]
   yy
@@ -257,7 +256,7 @@ carrying_f <- function(x,date0,theta){
 decline_f <- function(x,date0,theta){
   pp = control.shift + control.range /( 1 + exp(-10*(theta[["beta_c_mid"]] -1)))  # made sure drop after period control starts
   
-  yy = 1 - theta[["beta_c_mask"]]*theta[["beta_c_base"]]/(1+exp(-10*theta[["beta_c_grad"]]*((x+date0)/365-pp )))  
+  yy = 1 - theta[["beta_c_mask"]]*theta[["beta_c_base"]]/(1+exp(-theta[["beta_c_grad"]]*((x+date0)/365-pp )))  
   yy
 }
 
@@ -349,9 +348,9 @@ simulate_deterministic <- function(theta, init.state, times) {
   SIR_ode <- function(time, state, theta) {
 
     # Define temperature and variable carrying capacity
-    temp_t <-  theta[["beta_v_mask"]]*seasonal_f(time,theta) + (1-theta[["beta_v_mask"]])*26
+    temp_t <-  theta[["beta_v_mask"]]*seasonal_f(time,theta) + (1-theta[["beta_v_mask"]])*25
     density_scale <-  theta[["beta_v_mask"]]*carrying_f(time,0,theta) + (1-theta[["beta_v_mask"]])
-    
+
     # Define vector-specific parameters
     contact_rate <- theta[["beta_v"]] * bite_temp(temp_t)  #
     mosquito_to_human <- prob_to_h_temp(temp_t) * contact_rate * theta[["m_density"]] * density_vary(temp_t) * density_scale * decline_f(time,date0=theta[["shift_date"]],theta)     # scale by density * rain_scale
@@ -464,7 +463,7 @@ Deterministic_modelR<-function(iiN,dt,theta, theta_init, y.vals, y.vals2, y.vals
   likcasesLab = LikelihoodFunction(y.vals,casecountC[1:length(y.vals)],casecountA[1:length(y.vals)], theta,1,repSS="lab",y.vals.prop[1:length(y.vals)]) 
   likcasesDLI = LikelihoodFunction(y.vals2,casecountC[1:length(y.vals)],casecountA[1:length(y.vals)], theta,1,repSS="sus",y.vals.prop[1:length(y.vals)])
   
-  likelihood = sum(likcasesLab) + sum(likcasesDLI) + liksero1 + liksero2 #+ theta[["no2015"]]*likcases2015
+  likelihood = sum(likcasesLab) + sum(likcasesDLI) + liksero1 + liksero2 
   
   #print(likcasesLab)
   

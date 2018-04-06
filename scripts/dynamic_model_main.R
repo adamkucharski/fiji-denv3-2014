@@ -19,7 +19,7 @@ library(VennDiagram)
 
 rm(list=ls()) # Clear workspace
 
-clust1<-registerDoMC(4)  # Specify number of CPU cores
+registerDoMC(4)  # Specify number of CPU cores
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # Set up source functions
@@ -36,21 +36,18 @@ source("R/dynamic_model_mcmc.R")
 
 serological.data = c(F)
 
-aa = Sys.time()
-
 # Fit models to two types of serological data
 for(s.type in serological.data){
 
   use.ELISA.data = s.type # Fit to ELISA or MIA data
   
   # Fit using 4 model types:
-  # 1: SIR model cases  2: SIR model serology and cases  3: SIR + climate  4: SIR + climate + control
+  # 1: SIR model, cases;  2: SIR model, serology and cases;  3: SIR + climate, cases;  4: SIR + climate, serology and cases;  5: SIR + climate + control, serology and cases
   
-  run_transmission_mcmc(MCMC.runs = 1e2,use.ELISA.data) # set number of MCMC runs   
+  run_transmission_mcmc(MCMC.runs = 1e5,use.ELISA.data) # set number of MCMC runs   
   
 }
 
-print(Sys.time() - aa)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # Plot figures and outputs - Before plotting, need to define: use.ELISA.data = T or F
@@ -64,7 +61,7 @@ source("R/dynamic_model_characteristics.R",local=F)
 # Figure 5 - this uses "Figure_5_FALSE3_4.pdf" output
 # Supplementary model figures S7-S9
 # Table 1 (in two parts). Main table uses "Table_5_params_part1_FALSE3_4" output
-for(p_pick in 3:4){
+for(p_pick in 1:5){
   plot_posteriors(p_pick)
   plot_figure_2014_dengue3(p_pick,long_time=F,DoubleFit=F)
 }

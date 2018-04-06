@@ -82,6 +82,8 @@ fit_ELISA <- function(ELISA.fit = T, plot_venn=F){
     
     # - - - - - 
     # Plot MIA and neut data
+    dcutoff = read.csv("data/serology_MIA_cutoff.csv") # Load MIA cutoffs
+    
     par(mfrow=c(1,2),mar=c(3,3,1,1),mgp=c(1.7,0.5,0))
     
     # Plot Neut distribution
@@ -99,6 +101,8 @@ fit_ELISA <- function(ELISA.fit = T, plot_venn=F){
     # Plot MIA distribution
     hist(denv3.mia.1*1000,freq=T,breaks=seq(-2000,26000,1000),col=rgb(1,0.5,0,1),border="white",main="",xlab="DENV-3 MIA value",ylab="number of samples",xlim=c(-2000,26000),xaxs="i",yaxs="i")
     hist(denv3.mia.2*1000,freq=T,breaks=seq(-2000,26000,1000),add=T,border="white",col=rgb(0,0,1,0.5))
+    lines(c(dcutoff$DENV3,dcutoff$DENV3),c(0,1000),lty=2)
+    
     title(adj=0,main=LETTERS[2])
     
     txtSize=1
@@ -731,23 +735,23 @@ plot_surveillance_data <- function(){
 
   # PLOT lab confirmed data
 
-  plot(time.series$date,rowSums(time.seriesPOS[,div.names]),col="white",type="l",lwd=1,xlim=c(minT,maxT),xaxs="i",yaxs="i",ylim=c(0,1100),xlab="",ylab="confirmed cases")
+  plot(time.series$date,rowSums(time.seriesD[,div.names]),col="white",type="l",lwd=1,xlim=c(minT,maxT),xaxs="i",yaxs="i",ylim=c(0,1300),xlab="",ylab="lab tested cases")
   
   for(ii in 1:4){
-    lines(time.seriesD$date,time.seriesPOS[,div.names[ii]],col=colourpick1[ii],lwd=2)
+    lines(time.seriesD$date,time.seriesD[,div.names[ii]],col=colourpick1[ii],lwd=2)
     text(min(time.seriesD$date)+220,1100-100*ii,labels=div.names[ii],adj=0,col=colourpick1[ii])
   }
   text(min(time.seriesD$date)+220,1100-100*5,labels="All",adj=0)
   
-  lines(time.series$date,rowSums(time.seriesPOS[,div.names]),col="black",lwd=1)
+  lines(time.series$date,rowSums(time.seriesD[,div.names]),col="black",lwd=1)
   title(main="A",adj=0)
   
   # PLOT Proportion positive
   
-  plot(time.series$date,rowSums(time.seriesPOS[,div.names]),col="white",type="l",lwd=1,xlim=c(minT,maxT),xaxs="i",yaxs="i",ylim=c(0,1100),xlab="",ylab="lab cases in Central Division")
+  plot(time.series$date,rowSums(time.seriesPOS[,div.names]),col="white",type="l",lwd=1,xlim=c(minT,maxT),xaxs="i",yaxs="i",ylim=c(0,1300),xlab="",ylab="lab tested cases in Central Division")
   
-  lines(time.seriesD$date,time.seriesPOS[,div.names[1]],col=colourpick1[1],lwd=2)
-  lines(time.seriesD$date,time.seriesD[,div.names[1]],col=colourpick1[1],lwd=2,lty=2)
+  lines(time.seriesD$date,time.seriesPOS[,div.names[1]],col=colourpick1[1],lwd=2,lty=2)
+  lines(time.seriesD$date,time.seriesD[,div.names[1]],col=colourpick1[1],lwd=2)
   
   par(new=TRUE)
   plot(time.series$date, time.seriesPOS[,div.names[1]]/time.seriesD[,div.names[1]],col="grey",lwd=1,ylim=c(0,1.05),xaxt="n",yaxt="n",xlab="",ylab="",xlim=c(minT,maxT),type="l",yaxs="i")
@@ -757,22 +761,31 @@ plot_surveillance_data <- function(){
   title(main="B",adj=0)
   
   # PLOT DLI
-  
-  # Add non-confirmed
-  #time.series[,div.names] =   time.series[,div.names] + time.seriesD[,div.names] -time.seriesPOS[,div.names]
-  
-  plot(time.series$date,rowSums(time.series[,div.names]),col="white",type="l",lwd=2,xlim=c(minT,maxT),xaxs="i",yaxs="i",ylim=c(0,1800),xlab="",ylab="DLI cases")
+  plot(time.series$date,rowSums(time.series[,div.names]),col="white",type="l",lwd=2,xlim=c(minT,maxT),xaxs="i",yaxs="i",ylim=c(0,2500),xlab="",ylab="DLI cases")
   
   for(ii in 1:4){
     lines(time.seriesD$date,time.series[,div.names[ii]],col=colourpick1[ii],lwd=2)
   }
   
   lines(time.series$date,rowSums(time.series[,div.names]),col="black",lwd=1)
+  
+  # Include ratio of reporting
+  # fitting_period = time.seriesD$date>=as.Date("2014-02-01")
+  # x.vals = time.seriesD$date[fitting_period]
+  # y.vals = time.seriesD[fitting_period,div.names[1]] 
+  # y.vals2 = time.series[fitting_period,div.names[1]] 
+  # 
+  # y.vals
+  # par(new=TRUE)
+  # plot(x.vals,y.vals/(y.vals+y.vals2),xlim=c(minT,maxT),ylim=c(0,1),yaxt="n",xaxt="n",pch=19,col="grey",ylab="",type="l")
+  # axis(4,col="grey",col.axis="grey")
+  # mtext("proportion lab tested", side=4, line=1.5,col="grey",cex=0.8) # Label for 2nd axis
+  # 
   title(main="C",adj=0)
   
   # PLOT All suspected cases
   
-  plot(time.series$date,rowSums(time.seriesD[,div.names])+rowSums(time.series[,div.names]),col="white",type="l",lwd=2,xlim=c(minT,maxT),xaxs="i",yaxs="i",ylim=c(0,2500),xlab="",ylab="all cases")
+  plot(time.series$date,rowSums(time.seriesD[,div.names])+rowSums(time.series[,div.names]),col="white",type="l",lwd=2,xlim=c(minT,maxT),xaxs="i",yaxs="i",ylim=c(0,2500),xlab="",ylab="all suspected cases")
 
   # Tally cases
   print(c(colSums(time.seriesD[,div.names])+colSums(time.series[,div.names]),sum(time.seriesD[,div.names])+sum(time.series[,div.names])) )
@@ -792,20 +805,7 @@ plot_surveillance_data <- function(){
   
   dev.copy(pdf,paste("plots/Figure_S1_timeseries_dengue_Geographic.pdf",sep=""),width=7,height=5)
   dev.off()
-  
-  # - - - - - - - - 
-  # Plot ratio of reporting
-  
-  # par(mfrow=c(1,1),mar=c(2,3,1,3),mgp=c(2,0.7,0))
-  # 
-  # y.vals = time.seriesD[,div.names[1]] #time.seriesPOS[,div.names[1]]
-  # y.vals2 = time.series[,div.names[1]] #+ time.series[,div.names[1]] - y.vals
-  # 
-  # plot(time.seriesD$date,y.vals/(y.vals+y.vals2),xlim=c(as.Date("2013-11-01"),as.Date("2014-07-01")),ylim=c(0,1),pch=19,ylab="confirmed cases/all suspected cases")
-  # lines(time.seriesD$date,y.vals/(y.vals+y.vals2),xlim=c(as.Date("2013-11-01"),as.Date("2014-08-01")),ylim=c(0,1),pch=19)
-  
-  dev.copy(pdf,paste("plots/Figure_S1_timeseries_dengue_GeographicA.pdf",sep=""),width=7,height=5)
-  dev.off()
+
   
   
 }

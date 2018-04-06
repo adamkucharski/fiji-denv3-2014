@@ -10,12 +10,12 @@
 
 run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
 
-  multichain <- c(1:4) # run in parallel
+  multichain <- c(1:5) # run in parallel
   
   # multichain=c(4); MCMC.runs=10
   
-  #foreach(iiM=multichain) %dopar% {  # Loop over scenarios with parallel MCMC chains
-  for(iiM in multichain){
+  foreach(iiM=multichain) %dopar% {  # Loop over scenarios with parallel MCMC chains
+  #for(iiM in multichain){
     
     # - - - - - - - - - - - 
     # Load relevant data
@@ -33,7 +33,6 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
                         beta_c_constrain=rep(NA,locnn),
                         sero_lik1=rep(NA,locnn),
                         sero_lik2=rep(NA,locnn),
-                        no2015=rep(0,locnn), # Deprecated
                         repR=rep(NA,locnn),
                         repRA=rep(NA,locnn),
                         rep_drop=rep(NA,locnn),
@@ -50,13 +49,10 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
               mu_v=1/prior_p_MuV[1], # mortality rate
               prop_at_risk = 1,  # proportion of population who could be infected
               m_density=as.numeric(thetaR_IC[thetaR_IC$param=="m_density",2]), # mosquito density
-              beta2=as.numeric(thetaR_IC[thetaR_IC$param=="beta_h_2",2]), # baseline after control - jointly fitted
-              beta3=as.numeric(thetaR_IC[thetaR_IC$param=="beta_h_3",2]), # DEPRECATED
-              beta_v=as.numeric(thetaR_IC[thetaR_IC$param=="beta_v",2]), # Relative mixing M-to-H
+              beta_v=as.numeric(thetaR_IC[thetaR_IC$param=="beta_v",2]), # biting rate parameter
               b_rate=15.47/(365*1000),
               d_rate=4.93/(365*1000),
-              beta_v_amp=as.numeric(thetaR_IC[thetaR_IC$param=="beta_v_amp",2]),
-              beta_v_mid=as.numeric(thetaR_IC[thetaR_IC$param=="beta_v_mid",2])
+              beta_v_amp=as.numeric(thetaR_IC[thetaR_IC$param=="beta_v_amp",2]) # amplitude of carrying capacity
     )
     
     # Initial conditions
@@ -127,7 +123,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
       #theta_initAll[iiH,"em_initA"]=init_vec; theta_initAll[iiH,"im_initA"]=init_vec
       theta_initAll[iiH,"sm_initC"]=thetaAll[iiH,"npopM"]-theta_initAll[iiH,"em_initC"]-theta_initAll[iiH,"im_initC"]
 
-      theta_initAll[iiH,"sm_initA"] = theta[["beta_v_mid"]] # Mosquito larvae initially = carrying capcity
+      theta_initAll[iiH,"sm_initA"] = 1 # Mosquito larvae initially = carrying capcity
       
     }
     
@@ -139,19 +135,20 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
     # - - - - - - - - - - -
     
     # Turn on/off 2014 control and seasonality
-    # 1: SIR model cases  2: SIR model serology and cases  3: SIR + climate  4: SIR + climate + control
+    # 1: SIR model cases;  2: SIR model serology and cases;  3: SIR + climate cases;  4: SIR + climate serology and cases;  5: SIR + climate + control serology and cases
     thetaAll[1,"beta_c_constrain"]=1
     if(use.ELISA.data==T){thetaAll[1,"beta"]=1*thetaAll[1,"beta"]} # Adjust for higher immunity in ELISA data
     if(iiM==1){ thetaAll[1,"beta_c_mask"]=0 ; thetaAll[1,"beta_v_mask"]=0 ; thetaAll[1,"sero_lik1"] = 0; thetaAll[1,"sero_lik2"] = 0 } #; thetaAll[1,"beta"]=0.2; theta[["beta_v"]]=10
     if(iiM==2){ thetaAll[1,"beta_c_mask"]=0 ; thetaAll[1,"beta_v_mask"]=0; thetaAll[1,"beta"]=2 } #; thetaAll[1,"beta"]=0.2;  theta[["beta_v"]]=10
-    if(iiM==3){ thetaAll[1,"beta_c_mask"]=0; } #; theta[["beta_v_amp"]]=0.9  } #; thetaAll[1,"beta"]=0.05 } #; ; thetaAll[1,"beta_v"]=10 } theta[["beta_v_amp"]]=0.3 
-    #if(iiM==4){} #theta[["beta_v_amp"]]=0.6 
+    if(iiM==3){ thetaAll[1,"beta_c_mask"]=0 ; thetaAll[1,"sero_lik1"] = 0; thetaAll[1,"sero_lik2"] = 0  } #; theta[["beta_v_amp"]]=0.9  } #; thetaAll[1,"beta"]=0.05 } #; ; thetaAll[1,"beta_v"]=10 } theta[["beta_v_amp"]]=0.3 
+    if(iiM==4){ thetaAll[1,"beta_c_mask"]=0; } #; theta[["beta_v_amp"]]=0.9  } #; thetaAll[1,"beta"]=0.05 } #; ; thetaAll[1,"beta_v"]=10 } theta[["beta_v_amp"]]=0.3 
+
 
     
     # Covariance matrices - Add theta and thetaAll together in MCMC runs
     nparam=length(theta) 
     npc=rep(1,nparam)
-    pmask=c("prop_at_risk","beta3") # ** THIS FIXES UNIVERSAL PARAMETERS ** CAN TURN OFF AGE MIXING HERE
+    pmask=c("prop_at_risk") # ** THIS FIXES UNIVERSAL PARAMETERS ** CAN TURN OFF AGE MIXING HERE
     npc[match(pmask,names(theta))]=0
     cov_matrix_theta0 = diag(npc)
     
@@ -168,15 +165,21 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
     cov_matrix_theta_init0 = diag(npcov_init)
     
     # Quick simulation to check looks OK
+    
+
+    
     if(length(multichain)==1){
+      aa = Sys.time()
       par(mfrow=c(1,1),mar=c(4,4,1,1),mgp=c(2,0.7,0))
       repTN=1
       iiH=1; source("R/load_timeseries_data.R",local=TRUE)
       time.valsSim=time.vals
       Simulate_model2(5, dt, c(theta,thetaAll[iiH,]), theta_initAll[iiH,], y.vals,y.vals2, y.vals.prop,time.valsSim,repTN,date_list,plotA=TRUE,locationI=locationtab[iiH])
       #output1 = Deterministic_modelR(1,dt, c(theta,thetaAll[iiH,]), theta_initAll[iiH,], y.vals,y.vals2,y.vals.prop,time.valsSim,repTN,locationI=locationtab[1])
+      print(Sys.time() - aa)
       
     }
+    
 
     # - - - - - - - - - - - 
     # Set up matrices for MCMC run
@@ -320,7 +323,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
       
       if(m %% min(MCMC.runs,1000) == 0){
         print(c(m,accept_rate,sim_liktab[m],epsilon0))
-        save(sim_liktab,accepttab,s_trace_tabC,s_trace_tabA,c_trace_tab,r_trace_tabC,r_trace_tabA,x_trace_tabC,x_trace_tabA,thetatab,thetaAlltab,theta_initAlltab,file=paste("outputs/outputR",country.name,"_",epi.name,iiM,"_ELISA_",use.ELISA.data,".RData",sep=""))
+        save(sim_liktab,accepttab,s_trace_tabC,s_trace_tabA,c_trace_tab,r_trace_tabC,r_trace_tabA,x_trace_tabC,x_trace_tabA,thetatab,thetaAlltab,theta_initAlltab,file=paste("outputs/outputR",country.name,"_scenario_",pick_posterior,"_chain_",chainN,"_ELISA_",use.ELISA.data,".RData",sep=""))
       }
       
     } # End MCMC run
