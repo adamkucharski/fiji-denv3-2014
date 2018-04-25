@@ -159,7 +159,7 @@ SampleTheta<-function(theta_in, theta_init_in,m,covartheta,covartheta_init,singl
   }
   
   if(sum(names(theta_star)=="beta_c_grad")>0){
-    theta_star[["beta_c_grad"]]=min(theta_star[["beta_c_grad"]],200-theta_star[["beta_c_grad"]]) # Ensure control gradient between zero and 1000
+    theta_star[["beta_c_grad"]]=min(theta_star[["beta_c_grad"]],2000-theta_star[["beta_c_grad"]]) # Ensure control gradient between zero and 1000
   }
   
   if(sum(names(theta_star)=="beta_c_base")>0){
@@ -212,8 +212,8 @@ ComputeProbability<-function(sim_likelihood,sim_likelihood_star,thetatab,theta_s
   # sim_likelihood=sim_liktab[m]; sim_likelihood_star=sim_marg_lik_star; thetatab=thetatab[m,]; 
   
   # Include priors - Note have prior on Amplitude now as well
-  p_theta_star = priorInf(1/theta_star[["r_inf"]])*priorExp(1/theta_star[["r_exp"]])*priorVEx(1/theta_star[["v_exp"]])*priorMuV(1/theta_star[["mu_v"]])*priorBeta_h(theta_star[["beta_v"]]) *priorDensity(theta_star[["m_density"]]) #* priorAtRisk(theta_star[["prop_at_risk"]])
-  p_theta = priorInf(1/thetatab[["r_inf"]])*priorExp(1/thetatab[["r_exp"]])*priorVEx(1/thetatab[["v_exp"]])*priorMuV(1/thetatab[["mu_v"]])*priorBeta_h(thetatab[["beta_v"]]) * priorDensity(thetatab[["m_density"]]) #* priorAtRisk(thetatab[["prop_at_risk"]])
+  p_theta_star = priorInf(1/theta_star[["r_inf"]])*priorExp(1/theta_star[["r_exp"]])*priorVEx(1/theta_star[["v_exp"]])*priorMuV(1/theta_star[["mu_v"]])*priorBeta_v(theta_star[["beta_v"]]) *priorDensity(theta_star[["m_density"]]) 
+  p_theta = priorInf(1/thetatab[["r_inf"]])*priorExp(1/thetatab[["r_exp"]])*priorVEx(1/thetatab[["v_exp"]])*priorMuV(1/thetatab[["mu_v"]])*priorBeta_v(thetatab[["beta_v"]]) * priorDensity(thetatab[["m_density"]]) 
 
   # Calculate acceptance probability
   val = exp((sim_likelihood_star-sim_likelihood))*(p_theta_star/p_theta)
@@ -246,7 +246,7 @@ carrying_f <- function(x,date0,theta){
   
   #theta[["beta2"]]=1; theta[["beta_v_amp"]]=1;
   
-  yy = 1/(1+1/(0 + theta[["beta_v_amp"]]*seasonalrain(x,theta_fitRain)/221.2756)) # Scale to oscillate around 1 # theta[["beta2"]]
+  yy = 1/(1+1/(0 + theta[["beta_v_amp"]]*seasonalrain(x,theta_fitRain)/222.4374)) # Scale to oscillate around 1 # theta[["beta2"]]
   
   yy = yy[yy>0]
   yy
@@ -464,6 +464,8 @@ Deterministic_modelR<-function(iiN,dt,theta, theta_init, y.vals, y.vals2, y.vals
   likcasesDLI = LikelihoodFunction(y.vals2,casecountC[1:length(y.vals)],casecountA[1:length(y.vals)], theta,1,repSS="sus",y.vals.prop[1:length(y.vals)])
   
   likelihood = sum(likcasesLab) + sum(likcasesDLI) + liksero1 + liksero2 
+  
+  write.csv(rbind(n_Luminex_C_D3,n_Luminex_A_D3),paste("plots/check_serology",n_Luminex_A_D3[1],".csv",sep=""))
   
   #print(likcasesLab)
   

@@ -155,18 +155,17 @@ iiH <- 1
 # ELISA and MIA results - AGE GROUPS: 0<= x <20 and x>=20
 
 n_ELISA_C_D = c(21,42,86)   # DENV-3 immunity ELISA
-n_ELISA_A_D = c(133,154,176) # DENV-3 immunity ELISA
+n_ELISA_A_D = c(133,154,177) # DENV-3 immunity ELISA
 
-n_Luminex_C_D3 = c(6,36,85)   # DENV-3 MIA immunity
-n_Luminex_A_D3 = c(81,104,176) # DENV-3 MIA immunity
+n_Luminex_C_D3 = c(6,36,86)   # DENV-3 MIA immunity
+n_Luminex_A_D3 = c(81,104,177) # DENV-3 MIA immunity
 
-# Choose whether to use
-if(use.ELISA.data == T){n_Luminex_C_D3 = n_ELISA_C_D; n_Luminex_A_D3 = n_ELISA_A_D}
+if(use.ELISA.data == T){n_Luminex_C_D3 = n_ELISA_C_D; n_Luminex_A_D3 = n_ELISA_A_D} # Choose which to use
+
 
 # - - - - - - - - 
 # Dengue priors
-var_prior <- 0.5
-var_priorBeta <- 0.1
+var_prior <- 0.1
 
 # from Chan et al at 25C
 prior_p_Exp <- c(5.9,var_prior); 
@@ -174,17 +173,17 @@ prior_p_Exp <- c(5.9,var_prior);
 # from Mordecai et al function above
 prior_p_VEx <- c(10,var_prior); prior_p_MuV <- c(8,var_prior); prior_p_Inf <- c(5,var_prior)
 
-prior_betaV <- c(0.25,var_priorBeta)
+prior_betaV <- c(0.25,var_prior)
 
-priorR0<-function(x){1+0*x} #dgamma(x,shape=prior_p_R0[1]/(prior_p_R0[2])+1, scale=prior_p_R0[2])}
+priorR0<-function(x){1+0*x} # deprecated
 priorExp<-function(x){dgamma(x,shape=prior_p_Exp[1]/(prior_p_Exp[2]), scale=prior_p_Exp[2])} #1+0*x} #
 priorInf<-function(x){dgamma(x,shape=prior_p_Inf[1]/(prior_p_Inf[2]), scale=prior_p_Inf[2])} #1+0*x} #
 priorVEx<-function(x){dgamma(x,shape=prior_p_VEx[1]/(prior_p_VEx[2]), scale=prior_p_VEx[2])} #1+0*x} #
 priorMuV<-function(x){dgamma(x,shape=prior_p_MuV[1]/(prior_p_MuV[2]), scale=prior_p_MuV[2])} #1+0*x} #
-priorDensity<-function(x){ifelse(x<20,1,0)} # Have weak prior on mosquito density
+priorDensity<-function(x){ifelse(x<50,1,0)} # Have flat prior on mosquito density
 
-priorBeta_v<-function(x){dgamma(x,shape=prior_betaV[1]/prior_betaV[2], scale=prior_betaV[2])} # beta_v
-priorBeta_h<-function(x){dgamma(x,shape=1/(var_priorBeta), scale=(var_priorBeta))} # beta_v
+priorBeta_v<-function(x){dgamma(x,shape=prior_betaV[1]/prior_betaV[2], scale=prior_betaV[2])} # biting rate
+priorBeta_h<-function(x){dgamma(x,shape=1/(var_prior), scale=(var_priorBeta))} # deprecated
 
 priorAtRisk<-function(x){ifelse(x>0.8,1,0)} # Have strong prior on beta 1+ 0*x}#
 

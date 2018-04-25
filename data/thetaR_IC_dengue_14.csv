@@ -7,7 +7,7 @@ beta_control_mid,0.5
 beta_control_grad,100
 beta_control_base,0.5
 beta_control_mask,1
-m_density,5
+m_density,10
 rep,0.08
 repA,0.08
 repvol,0.1

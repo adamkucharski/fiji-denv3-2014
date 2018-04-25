@@ -8,11 +8,11 @@
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # RUN MCMC Model
 
-run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
+run_transmission_mcmc <- function(MCMC.runs = 10){
 
-  multichain <- c(1:5) # run in parallel
+  multichain <- c(1:4) # run in parallel
   
-  # multichain=c(4); MCMC.runs=10
+  # DEBUG  multichain=c(1); MCMC.runs=10; iiM = multichain
   
   foreach(iiM=multichain) %dopar% {  # Loop over scenarios with parallel MCMC chains
   #for(iiM in multichain){
@@ -20,7 +20,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
     # - - - - - - - - - - - 
     # Load relevant data
     source("R/dynamic_model_characteristics.R",local=F)
-    thetaR_IC <- read.csv(paste("data/thetaR_IC_",country.name,".csv",sep=""),stringsAsFactors=FALSE)
+    thetaR_IC = read.csv(paste("data/thetaR_IC_",country.name,".csv",sep=""),stringsAsFactors=FALSE)
     
     # - - - - - - - - - - - 
     # Initialise ICs 
@@ -135,16 +135,13 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
     # - - - - - - - - - - -
     
     # Turn on/off 2014 control and seasonality
-    # 1: SIR model cases;  2: SIR model serology and cases;  3: SIR + climate cases;  4: SIR + climate serology and cases;  5: SIR + climate + control serology and cases
+    # 1: SIR model cases;  2: SIR model serology and cases;  3: SIR + climate serology and cases;  4: SIR + climate + control serology and cases
     thetaAll[1,"beta_c_constrain"]=1
-    if(use.ELISA.data==T){thetaAll[1,"beta"]=1*thetaAll[1,"beta"]} # Adjust for higher immunity in ELISA data
-    if(iiM==1){ thetaAll[1,"beta_c_mask"]=0 ; thetaAll[1,"beta_v_mask"]=0 ; thetaAll[1,"sero_lik1"] = 0; thetaAll[1,"sero_lik2"] = 0 } #; thetaAll[1,"beta"]=0.2; theta[["beta_v"]]=10
-    if(iiM==2){ thetaAll[1,"beta_c_mask"]=0 ; thetaAll[1,"beta_v_mask"]=0; thetaAll[1,"beta"]=2 } #; thetaAll[1,"beta"]=0.2;  theta[["beta_v"]]=10
-    if(iiM==3){ thetaAll[1,"beta_c_mask"]=0 ; thetaAll[1,"sero_lik1"] = 0; thetaAll[1,"sero_lik2"] = 0  } #; theta[["beta_v_amp"]]=0.9  } #; thetaAll[1,"beta"]=0.05 } #; ; thetaAll[1,"beta_v"]=10 } theta[["beta_v_amp"]]=0.3 
-    if(iiM==4){ thetaAll[1,"beta_c_mask"]=0; } #; theta[["beta_v_amp"]]=0.9  } #; thetaAll[1,"beta"]=0.05 } #; ; thetaAll[1,"beta_v"]=10 } theta[["beta_v_amp"]]=0.3 
+    if(use.ELISA.data==T){thetaAll["m_density"]=1.5*theta["m_density"]} # Adjust for higher immunity in ELISA data
+    if(iiM==1){ thetaAll[1,"beta_c_mask"]=0 ; thetaAll[1,"beta_v_mask"]=0 ; thetaAll[1,"sero_lik1"] = 0; thetaAll[1,"sero_lik2"] = 0 } 
+    if(iiM==2){ thetaAll[1,"beta_c_mask"]=0 ; thetaAll[1,"beta_v_mask"]=0; thetaAll[1,"beta"]=2 }
+    if(iiM==3){ thetaAll[1,"beta_c_mask"]=0; } 
 
-
-    
     # Covariance matrices - Add theta and thetaAll together in MCMC runs
     nparam=length(theta) 
     npc=rep(1,nparam)
@@ -168,7 +165,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
     
 
     
-    if(length(multichain)==1){
+    if(length(multichain)==0){
       aa = Sys.time()
       par(mfrow=c(1,1),mar=c(4,4,1,1),mgp=c(2,0.7,0))
       repTN=1
@@ -323,7 +320,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10,use.ELISA.data = F){
       
       if(m %% min(MCMC.runs,1000) == 0){
         print(c(m,accept_rate,sim_liktab[m],epsilon0))
-        save(sim_liktab,accepttab,s_trace_tabC,s_trace_tabA,c_trace_tab,r_trace_tabC,r_trace_tabA,x_trace_tabC,x_trace_tabA,thetatab,thetaAlltab,theta_initAlltab,file=paste("outputs/outputR",country.name,"_scenario_",pick_posterior,"_chain_",chainN,"_ELISA_",use.ELISA.data,".RData",sep=""))
+        save(sim_liktab,accepttab,s_trace_tabC,s_trace_tabA,c_trace_tab,r_trace_tabC,r_trace_tabA,x_trace_tabC,x_trace_tabA,thetatab,thetaAlltab,theta_initAlltab,file=paste("outputs/outputR",country.name,"_scenario_",iiM,"_chain_",chainN,"_ELISA_",use.ELISA.data,".RData",sep=""))
       }
       
     } # End MCMC run

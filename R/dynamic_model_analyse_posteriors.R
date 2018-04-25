@@ -25,169 +25,156 @@ c.nume<-function(x){
 # - - - - - - - - - - - - - - - - - - - - - - - - 
 # Plot posteriors
 
-plot_posteriors<-function(p_pick=4){
+plot_posteriors<-function( p_pick=4 ){
   
   paramA=NULL
   
   locnnLoop=1
+  iiH = 1
+
+  # Import posteriors
+  pick_posterior = p_pick
+  source("R/load_posterior_single.R",local=TRUE)
+  
+  # PLOT HISTOGRAMS
+  
+  par(mfrow=c(3,6),mar = c(3,3,1,1),mgp=c(2,0.7,0),las=0)
+  
+  if(iiH==1){
+    colW='grey' 
+    colM=rgb(0.2,0.4,1)
+    colB='white'
+    baW=0.3
+    breaks0=seq(0,50,1)
+    hist(1/thetatab$v_exp[picks],breaks=breaks0,xlab=expression("incubation period (v)"),main=NULL,prob=TRUE,border=colB,col=colW,xlim=c(0,30))
+    curve(priorVEx(x), col="red", lwd=2, add=TRUE, yaxt="n")
+
+    hist(1/thetatab$r_exp[picks],breaks=breaks0,xlab=expression("incubation period (h)"),main=NULL,prob=TRUE,border=colB,col=colW,xlim=c(0,20))
+    curve(priorExp(x), col="red", lwd=2, add=TRUE, yaxt="n")
+    #lines(density(1/thetatab$r_exp[picks],bw=baW), col=colM,lwd=2)
     
-    for(iiH in 1:locnnLoop){
+    hist(1/thetatab$r_inf[picks],breaks=breaks0,xlab=expression("infectious period (h)"),main=NULL,prob=TRUE,border=colB,col=colW,xlim=c(0,20))
+    curve(priorInf(x), col="red", lwd=2, add=TRUE, yaxt="n")
+    #lines(density(1/thetatab$r_inf[picks],bw=baW), col=colM,lwd=2)
+    
+    hist(1/thetatab$mu_v[picks],breaks=breaks0,xlab=expression("lifespan (v)"),main=NULL,prob=TRUE,border=colB,col=colW,xlim=c(0,20))
+    curve(priorMuV(x), col="red", lwd=2, add=TRUE, yaxt="n")
+  
+  }
 
-      # Import multiple chains if available
-      #source("load_posteriors.R",local=TRUE)
-      pick_posterior = p_pick
-      source("R/load_posterior_single.R",local=TRUE)
-      
-      max_season = 2 # peak seasonality
-      
-      r0_vtab = (thetatab$beta[picks]/thetatab$r_inf[picks])*(thetatab$beta_v[picks]/thetatab$mu_v[picks])*(thetatab$v_exp[picks]/(thetatab$v_exp[picks]+thetatab$mu_v[picks]))*max_season
-      
-      # PLOT HISTOGRAMS
-      
-      par(mfrow=c(3,6),mar = c(3,3,1,1),mgp=c(2,0.7,0))
-      
-      if(iiH==1){
-        colW='grey' 
-        colM=rgb(0.2,0.4,1)
-        colB='white'
-        baW=0.3
-        breaks0=seq(0,50,1)
-        hist(1/thetatab$v_exp[picks],breaks=breaks0,xlab=expression("incubation period (v)"),main=NULL,prob=TRUE,border=colB,col=colW,xlim=c(0,30))
-        curve(priorVEx(x), col="red", lwd=2, add=TRUE, yaxt="n")
+  brekN=15 
 
-        hist(1/thetatab$r_exp[picks],breaks=breaks0,xlab=expression("incubation period (h)"),main=NULL,prob=TRUE,border=colB,col=colW,xlim=c(0,20))
-        curve(priorExp(x), col="red", lwd=2, add=TRUE, yaxt="n")
-        #lines(density(1/thetatab$r_exp[picks],bw=baW), col=colM,lwd=2)
-        
-        hist(1/thetatab$r_inf[picks],breaks=breaks0,xlab=expression("infectious period (h)"),main=NULL,prob=TRUE,border=colB,col=colW,xlim=c(0,20))
-        curve(priorInf(x), col="red", lwd=2, add=TRUE, yaxt="n")
-        #lines(density(1/thetatab$r_inf[picks],bw=baW), col=colM,lwd=2)
-        
-        hist(1/thetatab$mu_v[picks],breaks=breaks0,xlab=expression("lifespan (v)"),main=NULL,prob=TRUE,border=colB,col=colW,xlim=c(0,20))
-        curve(priorMuV(x), col="red", lwd=2, add=TRUE, yaxt="n")
-      
-      }
+  hist(thetatab$m_density[picks],xlab=expression('density'),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
+  curve(priorDensity(x), col="red", lwd=2, add=TRUE, yaxt="n")
 
-      brekN=15 #,breaks=brekN,
+  hist(thetatab$beta_v[picks],xlab=expression(beta[v]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
+  curve(priorBeta_v(x), col="red", lwd=2, add=TRUE, yaxt="n")
+  
+  hist(thetatab$beta_v_amp[picks],xlab="rainfall amplitude",main=NULL,border=colB,col=colW,prob=TRUE)
 
-      hist(thetatab$m_density[picks],xlab=expression('density'),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
-      curve(priorDensity(x), col="red", lwd=2, add=TRUE, yaxt="n")
-      
-      #hist(thetatab$beta_v[picks],xlab=expression('a'[v]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
-      hist(thetatab$beta_v[picks],xlab=expression(beta[v]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
-      curve(priorBeta_v(x), col="red", lwd=2, add=TRUE, yaxt="n")
-      
-      hist(thetatab$beta_v_amp[picks],xlab="rainfall amplitude",main=NULL,border=colB,col=colW,prob=TRUE)
-      #hist(thetatab$beta2[picks],xlab="rainfall scaling",main=NULL,border=colB,col=colW,prob=TRUE)
-      
-      
-      hist(thetatab$beta_c_grad[picks],xlab=expression('a'[1]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
-      
-      hist(thetatab$beta_c_base[picks],xlab=expression('a'[2]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
-      
-      control_mid = ( control.range /( 1 + exp(-10*(thetatab$beta_c_mid[picks] -1))))*365
-      
-      hist(control_mid,xlab=expression('a'[tau]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
-      
-      hist(thetatab$repR[picks],xlab="propn cases reported (lab)",main=NULL,border=colB,col=colW,prob=TRUE)
-      hist(thetatab$repRA[picks],xlab="propn cases reported (DLI)",main=NULL,border=colB,col=colW,prob=TRUE)
-      
-      hist(thetatab$repvol[picks],xlab="reporting dispersion",main=NULL,border=colB,col=colW,prob=TRUE)
-      #hist(thetatab$repvolA[picks],xlab="reporting dispersion (2)",main=NULL,border=colB,col=colW,prob=TRUE)
+  hist(thetatab$beta_c_grad[picks],xlab=expression('a'[1]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
+  hist(thetatab$beta_c_base[picks],xlab=expression('a'[2]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
+  
+  control_mid = ( control.range /( 1 + exp(-10*(thetatab$beta_c_mid[picks] -1))))*365
+  
+  hist(control_mid,xlab=expression('a'[tau]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
+  
+  hist(thetatab$repR[picks],xlab="propn cases reported (lab)",main=NULL,border=colB,col=colW,prob=TRUE)
+  hist(thetatab$repRA[picks],xlab="propn cases reported (DLI)",main=NULL,border=colB,col=colW,prob=TRUE)
+  hist(thetatab$repvol[picks],xlab="reporting dispersion",main=NULL,border=colB,col=colW,prob=TRUE)
 
-      #hist(thetatab$temp_balance[picks],xlab="temperature mid",prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
-      
-      
-      #hist(thetatab$repvol[picks],xlab=expression(phi),main=NULL,col=rgb(0.5,0.8,1),prob=TRUE)
-      hist(theta_inittab$i1_initC[picks],xlab=expression('I'[hc]^0),main=NULL,border=colB,col=colW,prob=TRUE)
-      hist(theta_inittab$i1_initA[picks],xlab=expression('I'[ha]^0),main=NULL,border=colB,col=colW,prob=TRUE)
-      #hist(theta_inittab$r_initC[picks],xlab=expression('R'[hc]^0),main=NULL,border=colB,col=colW,prob=TRUE)
-      #hist(theta_inittab$r_initA[picks],xlab=expression('R'[ha]^0),main=NULL,border=colB,col=colW,prob=TRUE)
-      hist(theta_inittab$im_initC[picks],xlab=expression('I'[v]^0),main=NULL,border=colB,col=colW,prob=TRUE)
-      
-      dev.copy(pdf,paste("plots/Figure_S4_posteriors_",use.ELISA.data,"_",p_pick,".pdf",sep=""),width=10,height=6) #,locationtab[iiH],
-      dev.off()
-      
-      # Output theta for future runs
-      max.init.names = c("i1_initC","im_initC")
-      max.out.theta.init = theta_inittab[pick.max,max.init.names]
 
-      max.names = c("beta","beta_v","beta_v_amp","beta_v_mask","beta_c_mid","beta_c_grad","beta_c_base","beta_c_mask","m_density","repR","repRA","repvol","npop","npopC","npopA")
-      max.out.theta = thetatab[pick.max,max.names]
-      max.param = cbind(c(max.names,max.init.names),c(max.out.theta,max.out.theta.init))
-      
-      write.csv(max.param,"plots/Table_5_params_best.csv")
-      # 
+  hist(theta_inittab$i1_initC[picks],xlab=expression('I'[hc]^0),main=NULL,border=colB,col=colW,prob=TRUE)
+  hist(theta_inittab$i1_initA[picks],xlab=expression('I'[ha]^0),main=NULL,border=colB,col=colW,prob=TRUE)
+  hist(theta_inittab$r_initC[picks]/thetatab$npopC[picks],xlab=expression('R'[hc]^0),main=NULL,border=colB,col=colW,prob=TRUE)
+  hist(theta_inittab$r_initA[picks]/thetatab$npopA[picks],xlab=expression('R'[ha]^0),main=NULL,border=colB,col=colW,prob=TRUE)
+  hist(theta_inittab$im_initC[picks],xlab=expression('I'[v]^0),main=NULL,border=colB,col=colW,prob=TRUE)
+  
+  dev.copy(pdf,paste("plots/Figure_S4_posteriors_",use.ELISA.data,"_",p_pick,".pdf",sep=""),width=10,height=6) #,locationtab[iiH],
+  dev.off()
+  
+  # Output max likelihood theta for future runs
+  max.init.names = c("i1_initC","im_initC")
+  max.out.theta.init = theta_inittab[pick.max,max.init.names]
 
-      # PLOT Parameter correlations
-      param.names = c("m_density","beta_v","beta_v_amp","beta_c_grad","beta_c_base","beta_c_mid"); # beta_c_base is base level
-      #param.labels = c(expression(beta[h]),expression(beta[v]),expression('rain amp'),expression('a'[1]),expression('a'[2]),expression('a'[tau]))
-      param.labels = c("density","contact rate",expression('rain amp'),expression('a'[1]),expression('a'[2]),expression('a'[tau]))
-      
-      par(mfcol=c(length(param.names),length(param.names)))
-      par(mar = c(3,3,1,1),mgp=c(1.8,0.5,0))
-      
-      thetatab0 = thetatab %>% data.frame()
-      sample.p = sample(length(thetatab0$beta),1000,replace=T)
-      thinner.theta=thetatab0[sample.p,]
+  max.names = c("beta","beta_v","beta_v_amp","beta_v_mask","beta_c_mid","beta_c_grad","beta_c_base","beta_c_mask","m_density","repR","repRA","repvol","npop","npopC","npopA")
+  max.out.theta = thetatab[pick.max,max.names]
+  max.param = cbind(c(max.names,max.init.names),c(max.out.theta,max.out.theta.init))
+  
+  write.csv(max.param,"plots/Table_5_params_best.csv")
 
-        for(ii in 1:length(param.names)){
-          for(jj in 1:length(param.names)){
-            if(ii<=jj){
-              if(ii == jj){
-                hist(thetatab0[[param.names[ii]]],xlab=param.labels[ii],main=NULL) #paste("ESS=",round(effectiveSize(thetatab0[[param.names[ii]]])))
-              }else{
-                plot(thinner.theta[[param.names[ii]]],thinner.theta[[param.names[jj]]],pch=19,cex=0.2, xlab="", ylab="",col="white",xaxt="n",yaxt="n",axes=F)
-              }
-            }else{
-              plot(thinner.theta[[param.names[ii]]],thinner.theta[[param.names[jj]]],pch=19,cex=0.3, xlab=param.labels[ii], ylab=param.labels[jj])
-              points(median(thinner.theta[[param.names[ii]]]),median(thinner.theta[[param.names[jj]]]),col="orange",cex=1.5,lwd=2)
 
-            }
+  # PLOT Parameter correlations
+  param.names = c("m_density","beta_v","beta_v_amp","beta_c_grad","beta_c_base","beta_c_mid"); # beta_c_base is base level
+  param.labels = c("density","contact rate",expression('rain amp'),expression('a'[1]),expression('a'[2]),expression('a'[tau]))
+  
+  par(mfcol=c(length(param.names),length(param.names)))
+  par(mar = c(3,3,1,1),mgp=c(1.8,0.5,0))
+  
+  thetatab0 = thetatab %>% data.frame()
+  sample.p = sample(length(thetatab0$beta),1000,replace=T)
+  thinner.theta=thetatab0[sample.p,]
 
+    for(ii in 1:length(param.names)){
+      for(jj in 1:length(param.names)){
+        if(ii<=jj){
+          if(ii == jj){
+            hist(thetatab0[[param.names[ii]]],xlab=param.labels[ii],main=NULL,freq=F) #paste("ESS=",round(effectiveSize(thetatab0[[param.names[ii]]])))
+          }else{
+            plot(thinner.theta[[param.names[ii]]],thinner.theta[[param.names[jj]]],pch=19,cex=0.2, xlab="", ylab="",col="white",xaxt="n",yaxt="n",axes=F)
           }
+        }else{
+          plot(thinner.theta[[param.names[ii]]],thinner.theta[[param.names[jj]]],pch=19,cex=0.3, xlab=param.labels[ii], ylab=param.labels[jj])
+          points(median(thinner.theta[[param.names[ii]]]),median(thinner.theta[[param.names[jj]]]),col="orange",cex=1.5,lwd=2)
+
         }
-        
-      dev.copy(png,paste("plots/Figure_S5_correlations",use.ELISA.data,"_",p_pick,".png",sep=""),units="cm",width=20,height=20,res=200)
-      dev.off()
 
-      # Compile beta matrix. Structure:  beta; 0.5 * beta * beta2  ; 0.5 * beta
-
-
-      source("R/load_timeseries_data.R",local=TRUE)
-      wks=length(time.vals)
-      
-      # Include bootstrap reporting uncertainty - denominator is total people infected
-
-      repBTS=sapply(sample(picks,1000,replace=T),function(x){rr.bt=(thetatab$npop[x]-s_trace_tabC[x,wks]-s_trace_tabA[x,wks]); rnbinom(1,mu=(rr.bt*thetatab[x,"repR"]),size=1/thetatab[x,"repvol"])/rr.bt })
-      repBTS2=sapply(sample(picks,1000,replace=T),function(x){rr.bt=(thetatab$npop[x]-s_trace_tabC[x,wks]-s_trace_tabA[x,wks]); rnbinom(1,mu=(rr.bt*thetatab[x,"repRA"]),size=1/thetatab[x,"repvolA"])/rr.bt })
-      
-      param1=cbind(
-        c.text(r0_vtab,2),
-        c.text(100*repBTS,2),
-        c.text(100*repBTS2,2),
-        c.text(theta_inittab$i1_initC[picks],2),
-        c.text(theta_inittab$i1_initA[picks],2),
-        c.text(100*(1-s_trace_tabC[picks,wks]/thetatab$npopC[picks]),2),
-        c.text(100*(r_trace_tabC[picks,1]/thetatab$npopC[picks]),2),
-        c.text(thetatab$beta[picks],2),
-        c.text(thetatab$beta_v[picks],2),
-        c.text(thetatab$beta3[picks]*thetatab$beta2[picks],2),
-        c.text(1/thetatab$r_exp[picks],2),
-        c.text(1/thetatab$r_inf[picks],2),
-        c.text(1/thetatab$v_exp[picks],2),
-        c.text(1/thetatab$mu_v[picks],2),
-        c.text(thetatab$repR[picks],2),
-        c.text(thetatab$repvol[picks],2),
-        max(sim_liktab)
-        )
-      
-      rownames(param1)=c(locationtab[iiH])
-      colnames(param1)=c("R0","propn reported (%)","propn reported 2 (%)","I_HC(0)","I_HA(0)","final size","prop_imm","beta_h","beta_v","beta2","alpha_h","gamma","alpha_v","delta","r","phi","max_lik")
-      
-      paramA=rbind(paramA,param1)
-
+      }
     }
+    
+  dev.copy(png,paste("plots/Figure_S5_correlations",use.ELISA.data,"_",p_pick,".png",sep=""),units="cm",width=20,height=20,res=200)
+  dev.off()
+
+  # Compile beta matrix. Structure:  beta; 0.5 * beta * beta2  ; 0.5 * beta
+
+  source("R/load_timeseries_data.R",local=TRUE)
+  wks=length(time.vals)
+  
+  # Include bootstrap reporting uncertainty - denominator is total people infected
+
+  repBTS=sapply(sample(picks,1000,replace=T),function(x){rr.bt=(thetatab$npop[x]-s_trace_tabC[x,wks]-s_trace_tabA[x,wks]); rnbinom(1,mu=(rr.bt*thetatab[x,"repR"]),size=1/thetatab[x,"repvol"])/rr.bt })
+  repBTS2=sapply(sample(picks,1000,replace=T),function(x){rr.bt=(thetatab$npop[x]-s_trace_tabC[x,wks]-s_trace_tabA[x,wks]); rnbinom(1,mu=(rr.bt*thetatab[x,"repRA"]),size=1/thetatab[x,"repvol"])/rr.bt })
+  
+  param1=cbind(
+    c.text(1/thetatab$r_exp[picks],2),
+    c.text(1/thetatab$r_inf[picks],2),
+    c.text(1/thetatab$v_exp[picks],2),
+    c.text(1/thetatab$mu_v[picks],2),
+    c.text(thetatab$beta_v[picks],2),
+    c.text(thetatab$m_density[picks],2),
+    c.text(thetatab$beta_v_amp[picks],2),
+    
+    c.text(thetatab$beta_c_grad[picks],2),
+    c.text(thetatab$beta_c_base[picks],2),
+    c.text(control_mid,2),
+    c.text(thetatab$repR[picks],2),
+    c.text(thetatab$repRA[picks],2),
+    c.text(thetatab$repvol[picks],2),
+    
+    c.text(theta_inittab$i1_initC[picks],2),
+    c.text(theta_inittab$i1_initA[picks],2),
+    c.text(r_trace_tabC[picks,1]/thetatab$npopC[picks],2),
+    c.text(r_trace_tabA[picks,1]/thetatab$npopA[picks],2),
+    c.text(theta_inittab$im_initC[picks],2),
+
+    c.text(100*repBTS,2),
+    c.text(100*repBTS2,2)
+    )
+  
+  rownames(param1)=c(locationtab[iiH])
+  colnames(param1)=c("1/nu_h","1/gamma","1/nu_v","1/delta","alpha","m","K","a_1","a_2","a_tau","r_lab","r_DLI","rho","I_HC(0)","I_HA(0)","R_HC(0)","R_HA(0)","I_v(0)","propn reported lab (%)","propn reported DLI (%)")
+  
+  paramA=param1
   
   write.csv(t(paramA),paste("plots/Table_5_params_part1_",use.ELISA.data,"_",p_pick,".csv",sep=""))
 
@@ -296,9 +283,9 @@ plot_weather_and_control <- function(){
   # - - -
   # Plot carrying capacity function
   rainfall_range = seq(0,400,10)
-  theta_b_amp = 0.01; yy1 = 1/(1+1/(0 + theta_b_amp*rainfall_range/221.2756))
-  theta_b_amp = 1; yy2 = 1/(1+1/(0 + theta_b_amp*rainfall_range/221.2756))
-  theta_b_amp = 100; yy3 = 1/(1+1/(0 + theta_b_amp*rainfall_range/221.2756))
+  theta_b_amp = 0.01; yy1 = 1/(1+1/(0 + theta_b_amp*rainfall_range/222.4374))
+  theta_b_amp = 1; yy2 = 1/(1+1/(0 + theta_b_amp*rainfall_range/222.4374))
+  theta_b_amp = 100; yy3 = 1/(1+1/(0 + theta_b_amp*rainfall_range/222.4374))
   
   plot(rainfall_range,yy1/max(yy1),type="l",lty=1,col="blue",xlab="rainfall (mm)",ylim=c(0,1),ylab="relative density")
   lines(rainfall_range,yy2/max(yy2),lty=2,col="blue")
@@ -323,12 +310,12 @@ plot_weather_and_control <- function(){
 # - - - - - - - - - - - - - - - - - - - - - - - - 
 # Model comparison
 
-model_comparison <- function( compareN = c(2,4,5) ){
+model_comparison <- function( compareN = c(2,3,4) ){
 
   # Parameter numbers for AIC
   param.init = 5
   param.all = 7
-  paramlist = c(0,0,1,1,1+3)
+  paramlist = c(0,0,1,1+3)
   
   aic.tab = NULL
   dic.tab = NULL
@@ -355,7 +342,7 @@ model_comparison <- function( compareN = c(2,4,5) ){
     output1 = Deterministic_modelR(1,dt, thetatab[pick.max,], theta_inittab[pick.max,], y.vals,y.vals2,y.vals.prop,time.vals,repTN,locationI=locationtab[1])
     print( output1$lik)
     
-    # Calculate median parameters and incorporate initial conditions
+    # Calculate median parameters and incorporate initial conditions -  use median given correlation structure in posterior
     theta_init_mean = apply(theta_initAlltab[picks,iiH,],2,median)
     theta_mean = apply(thetatab,2,median)
     
@@ -399,7 +386,7 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   locnnLoop=1
 
   layout(matrix(c(1,1,2,2,1,1,2,2,3,3,4,4,3,3,5,5), 4,byrow=T) )
-  par(mgp=c(1.7,0.5,0),mar = c(3,3,1,3),mai=c(0.2,0.5,0.2,0.4))
+  par(mgp=c(1.7,0.5,0),mar = c(3,3,1,3),mai=c(0.2,0.5,0.2,0.4),las=0)
   
   labelN=1
 
