@@ -8,11 +8,11 @@
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # RUN MCMC Model
 
-run_transmission_mcmc <- function(MCMC.runs = 10){
+run_transmission_mcmc <- function(MCMC.runs = 10,prop.risk=F){
 
   multichain <- c(1:4) # run in parallel
   
-  # DEBUG  multichain=c(1); MCMC.runs=10; iiM = multichain
+  # DEBUG  multichain=c(4); MCMC.runs=10; iiM = multichain; prop.risk = F
   
   foreach(iiM=multichain) %dopar% {  # Loop over scenarios with parallel MCMC chains
   #for(iiM in multichain){
@@ -47,7 +47,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
               r_inf=1/prior_p_Inf[1], # inf (h)
               v_exp=1/prior_p_VEx[1], # latent (v) # from Chan et al at 30C
               mu_v=1/prior_p_MuV[1], # mortality rate
-              prop_at_risk = 1,  # proportion of population who could be infected
+              prop_at_risk = if(prop.risk==T){as.numeric(thetaR_IC[thetaR_IC$param=="at_risk",2])}else{1},  # proportion of population who could be infected
               m_density=as.numeric(thetaR_IC[thetaR_IC$param=="m_density",2]), # mosquito density
               beta_v=as.numeric(thetaR_IC[thetaR_IC$param=="beta_v",2]), # biting rate parameter
               b_rate=15.47/(365*1000),
@@ -145,7 +145,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
     # Covariance matrices - Add theta and thetaAll together in MCMC runs
     nparam=length(theta) 
     npc=rep(1,nparam)
-    pmask=c("prop_at_risk") # ** THIS FIXES UNIVERSAL PARAMETERS ** CAN TURN OFF AGE MIXING HERE
+    pmask = if(prop.risk==T){NULL}else{c("prop_at_risk")} # ** THIS FIXES UNIVERSAL PARAMETERS **
     npc[match(pmask,names(theta))]=0
     cov_matrix_theta0 = diag(npc)
     
@@ -165,7 +165,7 @@ run_transmission_mcmc <- function(MCMC.runs = 10){
     
 
     
-    if(length(multichain)==0){
+    if(length(multichain)==1){
       aa = Sys.time()
       par(mfrow=c(1,1),mar=c(4,4,1,1),mgp=c(2,0.7,0))
       repTN=1

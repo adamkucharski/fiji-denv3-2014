@@ -71,7 +71,8 @@ plot_posteriors<-function( p_pick=4 ){
   curve(priorBeta_v(x), col="red", lwd=2, add=TRUE, yaxt="n")
   
   hist(thetatab$beta_v_amp[picks],xlab="rainfall amplitude",main=NULL,border=colB,col=colW,prob=TRUE)
-
+  #hist(thetatab$prop_at_risk[picks],xlab="proportion at risk",main=NULL,border=colB,col=colW,prob=TRUE)
+  
   hist(thetatab$beta_c_grad[picks],xlab=expression('a'[1]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
   hist(thetatab$beta_c_base[picks],xlab=expression('a'[2]),prob=TRUE,main=NULL,border=colB,col=colW)#,xlim=c(0,30))
   
@@ -418,8 +419,8 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
     cvector[ii,]= ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="sus",y.vals.prop) #+ ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="lab",y.vals.prop) # Edit for both datasets
     cvector_lab[ii,]= ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="lab",y.vals.prop) #+ ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="lab",y.vals.prop) # Edit for both datasets
     cvectorALL[ii,]= ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="sus",y.vals.prop) + ReportC(c_trace_tab[pick,1:tMax],thetatab[pick,],repSS="lab",y.vals.prop)
-    svectorC[ii,]= thetatab[pick,"prop_at_risk"]*r_trace_tabC[pick,1:tMax]/thetatab[pick,]$npopC # Proportion immune C 
-    svectorA[ii,]= thetatab[pick,"prop_at_risk"]*r_trace_tabA[pick,1:tMax]/thetatab[pick,]$npopA # Proportion immune A
+    svectorC[ii,]= (r_trace_tabC[pick,1] + thetatab[pick,"prop_at_risk"]* (r_trace_tabC[pick,1:tMax]-r_trace_tabC[pick,1]) )/thetatab[pick,]$npopC # Proportion immune C - update with proportion
+    svectorA[ii,]= (r_trace_tabA[pick,1] + thetatab[pick,"prop_at_risk"]* (r_trace_tabA[pick,1:tMax]-r_trace_tabA[pick,1]) )/thetatab[pick,]$npopA # Proportion immune A
   }
   
   medP=apply(cvector,2,function(x){median(x)})
@@ -457,10 +458,11 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   if(long_time==T){
     xRangeTimeS = c(as.Date("2013-11-04"),as.Date("2015-10-16")) #as.Date("2015-12-16")) # DATE OF TIME SERIES as.Date("2014-09-01"))
   }else{
-    xRangeTimeS = c(as.Date("2013-11-04"),as.Date("2014-08-30")) #as.Date("2014-09-01")# DATE OF TIME SERIES as.Date("2014-09-01"))
+    xRangeTimeS = c(as.Date("2013-11-04"),as.Date("2014-08-01")) #as.Date("2014-09-01")# DATE OF TIME SERIES as.Date("2014-09-01"))
   }
 
   xSelect=(1:length(date_list))
+  xSelectSerology= 1:ceiling((xRange2[2]- xRange2[1])/7) # 1:tMax 
   xSelect2= 1:tMax 
   xSelect2DROP1 = xSelect2[1:length(xSelect2)] #:(thetaAlltab[1,1,"rep_drop"])] # Adjust for pre- reporting drop
   xSelect2DROP2 = date_list>as.Date("2014-01-13")
@@ -515,22 +517,22 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   test1C=binom.test(x=n_Luminex_C_D3[1],n=n_Luminex_C_D3[3]); test2C=binom.test(x=n_Luminex_C_D3[2],n=n_Luminex_C_D3[3])
   test1A=binom.test(x=n_Luminex_A_D3[1],n=n_Luminex_A_D3[3]); test2A=binom.test(x=n_Luminex_A_D3[2],n=n_Luminex_A_D3[3])
 
-
   col2=rgb(1,0.5,0,1)
   col2a=rgb(1,0.5,0,0.2)
-  plot(date_list_all[xSelect2],medP_RC[xSelect2],type="l",col=NULL,xlab="",ylab="proportion seropositive",ylim=c(0,1),xlim=xRange2)
+  plot(date_list_all[xSelectSerology],medP_RC[xSelectSerology],type="l",col=NULL,xlab="",ylab="proportion seropositive",ylim=c(0,1),xlim=xRange2)
   
   if(Fmask==FALSE){
-    polygon(c(date_list_all[xSelect2],rev(date_list_all[xSelect2])),c(ciP1_RC[xSelect2],rev(ciP2_RC[xSelect2])),lty=0,col=col2a)
-    lines(date_list_all[xSelect2],medP_RC[xSelect2],lty=2,col=col2,xaxt="n",yaxt="n",xlab="",ylab="")
+    polygon(c(date_list_all[xSelectSerology],rev(date_list_all[xSelectSerology])),c(ciP1_RC[xSelectSerology],rev(ciP2_RC[xSelectSerology])),lty=0,col=col2a)
+    lines(date_list_all[xSelectSerology],medP_RC[xSelectSerology],lty=2,col=col2,xaxt="n",yaxt="n",xlab="",ylab="")
     
-    polygon(c(date_list_all[xSelect2],rev(date_list_all[xSelect2])),c(ciP1_RA[xSelect2],rev(ciP2_RA[xSelect2])),lty=0,col=col2a)
-    lines(date_list_all[xSelect2],medP_RA[xSelect2],type="l",col=col2,xaxt="n",yaxt="n",xlab="",ylab="")
+    polygon(c(date_list_all[xSelectSerology],rev(date_list_all[xSelectSerology])),c(ciP1_RA[xSelectSerology],rev(ciP2_RA[xSelectSerology])),lty=0,col=col2a)
+    lines(date_list_all[xSelectSerology],medP_RA[xSelectSerology],type="l",col=col2,xaxt="n",yaxt="n",xlab="",ylab="")
   }
   
   shiftA=-1
   if(iiH==1){
-    max.date.sero = max(date_list_all[xSelect2]) # max(xRange2)
+
+    max.date.sero = max(date_list_all[xSelectSerology])  #max(xRange2) #
     # Children sero in 2013/15
     points(max.date.sero-shiftA,n_Luminex_C_D3[2]/n_Luminex_C_D3[3],pch=1,col="red")
     lines(c(max.date.sero,max.date.sero)-shiftA,c(test2C$conf.int[1],test2C$conf.int[2]),pch=19,col="red")
@@ -669,7 +671,7 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   title(main=LETTERS[3],adj=0)
 
   # - - 
-  # Plot weather patterns - NEED TO UPDATE
+  # Plot weather patterns
   
   # Define data
   weather.date = as.Date(weather.data$Date) + 15

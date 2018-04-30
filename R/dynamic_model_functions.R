@@ -212,8 +212,8 @@ ComputeProbability<-function(sim_likelihood,sim_likelihood_star,thetatab,theta_s
   # sim_likelihood=sim_liktab[m]; sim_likelihood_star=sim_marg_lik_star; thetatab=thetatab[m,]; 
   
   # Include priors - Note have prior on Amplitude now as well
-  p_theta_star = priorInf(1/theta_star[["r_inf"]])*priorExp(1/theta_star[["r_exp"]])*priorVEx(1/theta_star[["v_exp"]])*priorMuV(1/theta_star[["mu_v"]])*priorBeta_v(theta_star[["beta_v"]]) *priorDensity(theta_star[["m_density"]]) 
-  p_theta = priorInf(1/thetatab[["r_inf"]])*priorExp(1/thetatab[["r_exp"]])*priorVEx(1/thetatab[["v_exp"]])*priorMuV(1/thetatab[["mu_v"]])*priorBeta_v(thetatab[["beta_v"]]) * priorDensity(thetatab[["m_density"]]) 
+  p_theta_star = priorInf(1/theta_star[["r_inf"]])*priorExp(1/theta_star[["r_exp"]])*priorVEx(1/theta_star[["v_exp"]])*priorMuV(1/theta_star[["mu_v"]])*priorBeta_v(theta_star[["beta_v"]]) *priorDensity(theta_star[["m_density"]]) * priorAtRisk(theta_star[["prop_at_risk"]])
+  p_theta = priorInf(1/thetatab[["r_inf"]])*priorExp(1/thetatab[["r_exp"]])*priorVEx(1/thetatab[["v_exp"]])*priorMuV(1/thetatab[["mu_v"]])*priorBeta_v(thetatab[["beta_v"]]) * priorDensity(thetatab[["m_density"]]) * priorAtRisk(thetatab[["prop_at_risk"]])
 
   # Calculate acceptance probability
   val = exp((sim_likelihood_star-sim_likelihood))*(p_theta_star/p_theta)
@@ -312,10 +312,13 @@ Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,y.vals2, y.vals.p
     mtext("Transmission rate", side=4, line=2,col="red",cex=1) # Label for 2nd axis
     
     # Plot susceptibles etc.
+    plotRC = (1-output$S_traceC[1]/theta[["npopC"]]) + theta[["prop_at_risk"]]*( (1-output$S_traceC/theta[["npopC"]]) - (1-output$S_traceC[1]/theta[["npopC"]]) )
+    plotRA = (1-output$S_traceA[1]/theta[["npopA"]]) + theta[["prop_at_risk"]]*( (1-output$S_traceA/theta[["npopA"]]) - (1-output$S_traceA[1]/theta[["npopA"]]) )
+    
     plot(min(date_list)+time.vals-7,output$X_traceA/theta[["npopM"]],xlim=c(min(date_list),xmax),ylim=c(0,2),type="l") #ylim=c(0,3)
     lines(min(date_list)+time.vals-7,output$X_traceC/theta[["npopM"]],ylim=c(0,1),xlim=c(min(date_list),xmax),type="l",col="black",lty=2)
-    lines(min(date_list)+time.vals-7,theta[["prop_at_risk"]]*(1-output$S_traceC/theta[["npopC"]]),ylim=c(0,1),xlim=c(min(date_list),xmax),type="l",col="red")
-    lines(min(date_list)+time.vals-7,theta[["prop_at_risk"]]*(1-output$S_traceA/theta[["npopA"]]),ylim=c(0,1),xlim=c(min(date_list),xmax),type="l",col="red",lty=2)
+    lines(min(date_list)+time.vals-7, plotRC ,ylim=c(0,1),xlim=c(min(date_list),xmax),type="l",col="red")
+    lines(min(date_list)+time.vals-7, plotRA ,ylim=c(0,1),xlim=c(min(date_list),xmax),type="l",col="red",lty=2)
     
     
     
@@ -449,10 +452,10 @@ Deterministic_modelR<-function(iiN,dt,theta, theta_init, y.vals, y.vals2, y.vals
   
   # Compile case counts and serological data
   casecount <- casecountC + casecountA
-  seroPC_1 <- (theta_init[["r_initC"]]/theta[["npopC"]]) *theta[["prop_at_risk"]]
-  seroPA_1 <- (theta_init[["r_initA"]]/theta[["npopA"]]) *theta[["prop_at_risk"]]
-  seroPC_2 <- (tail(R_trajC,1)/theta[["npopC"]]) *theta[["prop_at_risk"]]
-  seroPA_2 <- (tail(R_trajA,1)/theta[["npopA"]]) *theta[["prop_at_risk"]]
+  seroPC_1 <- (theta_init[["r_initC"]]/theta[["npopC"]]) 
+  seroPA_1 <- (theta_init[["r_initA"]]/theta[["npopA"]])
+  seroPC_2 <- seroPC_1 + (tail(R_trajC,1)/theta[["npopC"]] - seroPC_1) *theta[["prop_at_risk"]] # Adjust for proportion at risk
+  seroPA_2 <- seroPA_1 + (tail(R_trajA,1)/theta[["npopA"]] - seroPA_1) *theta[["prop_at_risk"]] # Adjust for proportion at risk
   
   # Calculate serology and surveillance likelihoods
   liksero1 = (ifelse(locationI=="Central",dbinom(n_Luminex_C_D3[1], size=n_Luminex_C_D3[3], prob=seroPC_1, log = T),0) +

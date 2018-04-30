@@ -11,9 +11,10 @@ epi.name="DENV"
 timeser14_Sus <- read.csv(paste("data/Central_suspected.csv",sep=""), stringsAsFactors = F); timeser14_Sus$date = as.Date(timeser14_Sus$date)  # Load DLI dengue data
 timeser14_All <- read.csv(paste("data/Central_lab_tested.csv",sep=""), stringsAsFactors = F); timeser14_All$date = as.Date(timeser14_All$date) # Load Lab tested cases
 swap.date = as.Date("2014-03-08"); #Pick date of reporting change
-cutt.date = as.Date("2014-08-01") # Pick max date to fit to - if smaller than swap.date, just fit case data  as.Date("2014-03-10")
+cutt.date = as.Date("2014-06-01") # Pick max date to fit to - if smaller than swap.date, just fit case data  as.Date("2014-08-01")
+
 start.date = as.Date("2013-11-04")
-sample.collection.date = as.Date("2015-10-16")
+simulation.end.date = as.Date("2014-09-01") #  Note this is simulation range  # as.Date("2015-10-16")
 dt =  7  #ode increment
 
 # Set up parameters for control and seasonality
