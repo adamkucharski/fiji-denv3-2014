@@ -27,6 +27,9 @@ binom_output <- function(xx,nn){
 # - - - - - - - - - - - - - - - - - - - - 
 
 fit_ELISA <- function(ELISA.fit = T, plot_venn=F){
+  
+  # DEBUG  ELISA.fit = T; plot_venn=F
+  
   inputs =   data.frame(read.csv("data/serology_inputs.csv",stringsAsFactors = F))
 
   # - - - - - - - - -
@@ -118,70 +121,44 @@ fit_ELISA <- function(ELISA.fit = T, plot_venn=F){
   
   if(ELISA.fit==F){return()}
   
-  # - - - - - - - - - - - - - 
-  # Calculate Kappa between seropositive Luminex and ELISA
-  countEL = inputs; countEL$DconvertM = titre.weights
-  countEL$sero1 = (countEL$ELISA1>=11) %>% as.numeric() # compare cutoff
-  countEL$sero2 = (countEL$ELISA2>=11) %>% as.numeric() # compare cutoff
-  
-  # At least one MIA positive
-  L1_positive = (rowSums(countEL[,c("DENV1P","DENV2P","DENV3P","DENV4P")])>0) %>% as.numeric()
-  L2_positive = (rowSums(countEL[,c("DENV1BP","DENV2BP","DENV3BP","DENV4BP")])>0) %>% as.numeric()
+  # - - -
+  # Comparison of neutralisation and MIA data
+  total.NL = length(countNL$PPID2)
 
-  comp.1 = c(countEL$sero1,countEL$sero2); comp.2 = c(as.numeric(L1_positive),as.numeric(L1_positive))
+  # ELISA any DENV in each year
+  ELISA.any.13 = sum(countNL[,c("sero1")]==1)
+  ELISA.any.15 = sum(countNL[,c("sero2")]==1)
   
-  k_outEL = kappa2(cbind(comp.1,comp.2), "unweighted")  # Cohen's kappa
-  k_accEL = ( sum(comp.1==1 & comp.2==1) +  sum(comp.1==0 & comp.2==0) )/length(comp.1)  # Accuracy
+  # MIA DENV specific in each year
+  MIA.type.13 = colSums(countNL[,c("DENV1P","DENV2P","DENV3P","DENV4P")])
+  MIA.type.15 = colSums(countNL[,c("DENV1BP","DENV2BP","DENV3BP","DENV4BP")])
   
-  # - - - - - - - - - - - - - 
-  # Calculate Kappa between neutralisation and MIA for DENV-3
-  countNL = inputs[!is.na(inputs$D3s15),];
+  # MIA any DENV in each year
+  MIA.any.13 = sum(rowSums(countNL[,c("DENV1P","DENV2P","DENV3P","DENV4P")])>0)
+  MIA.any.15 = sum(rowSums(countNL[,c("DENV1BP","DENV2BP","DENV3BP","DENV4BP")])>0)
   
-  # At least one Luminex
-  L1_positive_3 = ((countNL[,c("DENV3P")])>0) %>% as.numeric(); L2_positive_3 = ((countNL[,c("DENV3BP")])>0) %>% as.numeric()
-  N1_positive_3 = (countNL$D3s13>=20) %>% as.numeric(); N2_positive_3 = (countNL$D3s15>=20) %>% as.numeric()
-
-  comp.1N = c(N1_positive_3,N2_positive_3); comp.2N = c(as.numeric(L1_positive_3),as.numeric(L2_positive_3))
-
-  k_outNL3 = kappa2(cbind(comp.1N,comp.2N), "unweighted")  # Cohen's kappa
-  k_accNL3 = ( sum(comp.1N==1 & comp.2N==1) +  sum(comp.1N==0 & comp.2N==0) )/length(comp.1N)  # Accuracy
+  # Neut DENV specific in each year
+  NT.type.13 = colSums(countNL[,c("D1s13","D2s13","D3s13","D4s13")]>=20)
+  NT.type.15 = colSums(countNL[,c("D1s15","D2s15","D3s15","D4s15")]>=20)
   
-  # - - - - - - - - - - - - - 
-  # Calculate Kappa between neutralisation, MIA and ELISA for Any dengue
-  
-  # At least one Luminex
-  L1_positive_NT = (rowSums(countNL[,c("DENV1P","DENV2P","DENV3P","DENV4P")])>0) %>% as.numeric()
-  L2_positive_NT = (rowSums(countNL[,c("DENV1BP","DENV2BP","DENV3BP","DENV4BP")])>0) %>% as.numeric()
-
-  N1_positive_Any = (rowSums(countNL[,c("D1s13","D2s13","D3s13","D4s13")]>=20)>0) %>% as.numeric()
-  N2_positive_Any = (rowSums(countNL[,c("D1s15","D2s15","D3s15","D4s15")]>=20)>0) %>% as.numeric()
-  
-  E1_positive_Any = (countNL$sero1==1) %>% as.numeric()
-  E2_positive_Any = (countNL$sero2==1) %>% as.numeric()
-  
-  comp.1Any = c(N1_positive_Any,N2_positive_Any); comp.2Any = c(as.numeric(L1_positive_NT),as.numeric(L2_positive_NT)); comp.3Any = c(as.numeric(E1_positive_Any),as.numeric(E2_positive_Any))
-  
-  k_out_MN = kappa2(cbind(comp.1Any,comp.2Any), "unweighted")  # Cohen's kappa
-  k_acc_MN = ( sum(comp.1Any==1 & comp.2Any==1) +  sum(comp.1Any==0 & comp.2Any==0) )/length(comp.1Any)  # Accuracy
-  # k_outNL2 = kappa2(cbind(comp.1Any,comp.3Any), "unweighted")  # Cohen's kappa
-  # k_accNL2 = ( sum(comp.1Any==1 & comp.3Any==1) +  sum(comp.1Any==0 & comp.3Any==0) )/length(comp.1Any)  # Accuracy
-  k_out_ME = kappa2(cbind(comp.2Any,comp.3Any), "unweighted")  # Cohen's kappa
-  k_acc_ME = ( sum(comp.2Any==1 & comp.3Any==1) +  sum(comp.2Any==0 & comp.3Any==0) )/length(comp.1Any)  # Accuracy
+  # Neut any DENV in each year
+  NT.any.13 = sum(rowSums(countNL[,c("D1s13","D2s13","D3s13","D4s13")]>=20)>0)
+  NT.any.15 = sum(rowSums(countNL[,c("D1s15","D2s15","D3s15","D4s15")]>=20)>0)
   
   # Create table of comparisons
-  tab_kappa = rbind(
-    c(paste(round(k_accEL,2)," (",round(k_outEL$value,2),")",sep=""),paste(round(k_acc_ME,2)," (",round(k_out_ME$value,2),")",sep=""),"-"), # ELISA
-    c("-",paste(round(k_acc_MN,2)," (",round(k_out_MN$value,2),")",sep=""),"-"), # MIA any
-    #c("-","-","-",paste(round(k_acc_MN,2)," (",round(k_out_MN$value,2),")",sep=""),"-"), # Neut Any
-    c("-","-",paste(round(k_accNL3,2)," (",round(k_outNL3$value,2),")",sep="")) # MIA D3
-    #c("-","-","-")  # Neut D3
+  tab_NT = rbind(
+      c("-","-","-","-",binom.calc(ELISA.any.13,total.NL)),
+      c("-","-","-","-",binom.calc(ELISA.any.15,total.NL)),
+      c(sapply(MIA.type.13,function(x){binom.calc(x,total.NL)}), binom.calc(MIA.any.13,total.NL)),
+      c(sapply(MIA.type.15,function(x){binom.calc(x,total.NL)}), binom.calc(MIA.any.15,total.NL)),
+      c(sapply(NT.type.13,function(x){binom.calc(x,total.NL)}), binom.calc(NT.any.13,total.NL)),
+      c(sapply(NT.type.15,function(x){binom.calc(x,total.NL)}), binom.calc(NT.any.15,total.NL))
   )
   
-  colnames(tab_kappa) = c("MIA any DENV","Neut any DENV","Neut DENV-3")
-  rownames(tab_kappa) = c("ELISA","MIA any DENV","MIA DENV-3")
+  colnames(tab_NT) = c("DENV-1","DENV-2","DENV-3","DENV-4","Any DENV")
+  rownames(tab_NT) = c("ELISA","ELISA","MIA","MIA","NT","NT")
   
-  write.csv( tab_kappa,"plots/Kappa_compare.csv",row.names = T)
-  
+  write.csv( tab_NT ,"plots/Table_S1_assays.csv",row.names = T)
   
   
   # - - -
@@ -409,7 +386,7 @@ fit_ELISA_univariable <- function(inputs){ # use inputs from above fit_ELISA fun
   
   store.fever$percent_inf = sapply(store.fever$report_inf, function(x){binom_output(x,total_inf) } )
 
-  write.csv(store.fever,"plots/Table_S1_fever_breakdown.csv")
+  write.csv(store.fever,"plots/Table_S5_fever_breakdown.csv")
   
   
 }
@@ -698,13 +675,13 @@ binom.calc <- function(x,n){
 
 }
 
-binom.distn.calc <- function(p,n){
+binom.distn.calc <- function(p,n,digitsA=2){
   
   xx = seq(0,n,0.0001)
   yy = pbinom(xx,size=n,prob=p)
-  meanA=100*p  %>% signif(digits=3)
-  conf1=(100*max(xx[yy<0.025])/n) %>% signif(digits=3)
-  conf2=(100*max(xx[yy<=0.975])/n) %>% signif(digits=3)
+  meanA=100*p  %>% signif(digits=digitsA)
+  conf1=(100*max(xx[yy<0.025])/n) %>% signif(digits=digitsA)
+  conf2=(100*max(xx[yy<=0.975])/n) %>% signif(digits=digitsA)
   paste(meanA,"% (",conf1,"-",conf2,"%)",sep="") 
   
 }
@@ -768,19 +745,7 @@ plot_surveillance_data <- function(){
   }
   
   lines(time.series$date,rowSums(time.series[,div.names]),col="black",lwd=1)
-  
-  # Include ratio of reporting
-  # fitting_period = time.seriesD$date>=as.Date("2014-02-01")
-  # x.vals = time.seriesD$date[fitting_period]
-  # y.vals = time.seriesD[fitting_period,div.names[1]] 
-  # y.vals2 = time.series[fitting_period,div.names[1]] 
-  # 
-  # y.vals
-  # par(new=TRUE)
-  # plot(x.vals,y.vals/(y.vals+y.vals2),xlim=c(minT,maxT),ylim=c(0,1),yaxt="n",xaxt="n",pch=19,col="grey",ylab="",type="l")
-  # axis(4,col="grey",col.axis="grey")
-  # mtext("proportion lab tested", side=4, line=1.5,col="grey",cex=0.8) # Label for 2nd axis
-  # 
+
   title(main="C",adj=0)
   
   # PLOT All suspected cases

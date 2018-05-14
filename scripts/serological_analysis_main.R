@@ -28,6 +28,8 @@ source("R/serology_analyse_functions.R")
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 # Plot figures and outputs
 
+# Note: Serological data are provided in 5 year age bands, given in "AGE_GROUP" column
+
 # Compile the following:
 # Table 2
 # Table 3

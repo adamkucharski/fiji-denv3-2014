@@ -39,65 +39,20 @@ weather.data.daily = read.csv(paste("data/data_Fiji_climate_daily.csv",sep=""), 
 weather.data.daily$date = as.Date(weather.data.daily$date)
 
 weather2014.daily = weather.data.daily[weather.data.daily$date >= as.Date("2013-10-01") &weather.data.daily$date<= as.Date("2016-11-01"),] # select relevant dates
-#weather2014.daily = weather.data.daily[weather.data.daily$date >= as.Date("2013-10-28") &weather.data.daily$date<= as.Date("2014-11-01"),] # select relevant dates
-
-#plot(weather2014.daily$lsd,weather2014.daily$min_air_temp+ (weather2014.daily$max_air_temp-weather2014.daily$max_air_temp)/2,type="l")
-
-
-# - - - - - - - - - - - - - - - 
-# Fit sine wave to data
-#tt_range = seq(start.date,start.date+200,1)
-#tt_range = as.Date(weather2014$Date) + 15
-#yy_year = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014$Date))); weather2014[y,"Av_temp"] })
 
 tt_range = as.Date(weather2014.daily$date) # Date range
 tt_actual = as.numeric(tt_range - start.date) + 7 # Convert to numeric and adjust for for dt in fitting
 
 # Define temperature timeseries
 yy_year1 = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014.daily$date))); weather2014.daily[y,"min_air_temp"] + (weather2014.daily[y,"max_air_temp"]-weather2014.daily[y,"min_air_temp"])/2 })
-#yy_year2 = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014.daily$date))); weather2014.daily[y,"max_air_temp"]}) # + (weather2014.daily[y,"max_air_temp"]-weather2014.daily[y,"min_air_temp"])/2 })
-
 
 # Use actual data
 tt_range2 = seq(start.date-7,start.date+800,1) # All dates
 yy_yearT_mean = sapply(tt_range2, function(x){ y = yy_year1[which(x==(tt_range-7)):which(x==tt_range)]; mean(y) })
 seasonaltemp <- function(x,theta){ yy_yearT_mean[round(x)+1]  } # pick out relative entry
 
-
-# tt_range_week = seq(start.date-7,start.date+800,7) # All dates
-# yy_yearT_week = sapply(tt_range_week, function(x){ y = yy_year1[which(x>=tt_range & x<(tt_range+7) )]; mean(y) })
-# 
-# yy_yearT_1 = sapply(tt_range2, function(x){ y = max(which(x>=as.Date(tt_range_week))); yy_yearT_week[y] })
-# 
-# yy_yearT_mean = sapply(tt_range2, function(x){ 
-#   y = yy_yearT_1[which((x-3)==tt_range):which((x+3)==tt_range)] ; mean(y)
-# })
-# 
-# seasonaltemp <- function(x,theta){ yy_yearT_mean[round(x)+1]  } # pick out relative entry
-
-
-
-
-
-# - - - - -
-# Define temperature function via sin function
-# seasonaltemp <- function(x,theta){theta[["temp_base"]]*(1+ theta[["temp_amp"]]*sin((x - theta[["temp_shift"]])*2*pi/365) )  }
-# seasonaltemp_fit <- function(param,vals){ sum((seasonaltemp(tt_actual,param) - vals)^2)  } # Compare estimate and fit
-# 
-# # Fit sine function to temperature
-# param = c(temp_amp=0.1, temp_base=24, temp_shift=10)
-# optim_temp1 = optim(param, seasonaltemp_fit, method="L-BFGS-B",vals=yy_year1, lower=c(rep(0,3)),upper=c(1,30,365), hessian=FALSE)$par
-# theta_fit1 = c(temp_amp=optim_temp1[["temp_amp"]], temp_base=optim_temp1[["temp_base"]], temp_shift=optim_temp1[["temp_shift"]])
-# 
-# optim_temp2 = optim(param, seasonaltemp_fit, method="L-BFGS-B",vals=yy_year2, lower=c(rep(0,3)),upper=c(1,30,365), hessian=FALSE)$par
-# theta_fit2 = c(temp_amp=optim_temp2[["temp_amp"]], temp_base=optim_temp2[["temp_base"]], temp_shift=optim_temp2[["temp_shift"]])
-# 
-
-# Plot temperature fit (to check:
+# Temperature vals
 tt_numeric = as.numeric(seq(start.date,start.date+300,1) - start.date)
-# plot(tt_actual,yy_year); lines(tt_numeric, seasonaltemp(tt_numeric,theta_fit) )
-# lines(tt_actual, seasonaltemp(tt_actual,theta_fit) )
-#
 
 # - - - - - 
 # Fit moving average function to rainfall
@@ -115,19 +70,8 @@ tt_actual2 = as.numeric(tt_range2 - start.date) + 7
 
 seasonalrain <- function(x,theta){ yy_yearR_mean[round(x)+1]  } # pick out relative entry
 
-#yy_yearR = sapply(tt_range, function(x){ y = max(which(x>=as.Date(weather2014$Date))); weather2014[y,"Rain_av"] })
-
-# seasonalrain <- function(x,theta){theta[["rain_base"]]*(1+ theta[["rain_amp"]]*sin((x - theta[["rain_shift"]])*2*pi/365) )  }
-# seasonalrain_fit <- function(param,vals){ sum((seasonalrain(tt_actual,param) - vals)^2)  }
-# 
-# param = c(rain_amp=0.5, rain_base=210, rain_shift=10)
-# optim_rain = optim(param, seasonalrain_fit, method="L-BFGS-B",vals=yy_yearR, lower=c(rep(0,3)),upper=c(10,500,365), hessian=FALSE)$par
-# theta_fitRain = c(rain_amp=optim_rain[["rain_amp"]], rain_base=optim_rain[["rain_base"]], rain_shift=optim_rain[["rain_shift"]])
-
 # - - - - - - - - 
 # Load Mordecai prior data
-
-
 EI_rate_temp <- function(temp){briere(temp, 6.111624e-05, 45.52661, 10.29733)/0.1017774} # scale to 1 at 25C baseline
 mortality_rate_temp <- function(temp){ 1/(quad.2(temp, 9.023289, 37.66479, -0.143324)/29.00042 ) } # scale to 1 at 25C baseline
 
@@ -149,7 +93,7 @@ locationtab = c("Central","Central17")
 locationtabF = c("Central","Western","Northern","Eastern") # labels
 
 
-locnn <- 2 #length(locationtab) # Need this =2 for MCMC loop to work (old multi-site functionality)
+locnn <- 2 # Need this =2 for MCMC loop to work (old multi-site functionality)
 iiH <- 1
 
 # - - - - - - - - 

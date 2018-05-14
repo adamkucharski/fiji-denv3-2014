@@ -36,14 +36,12 @@ source("R/dynamic_model_mcmc.R")
 
 serological.data = c(F,T)
 
-# Run across multiple chains
-for(chainN in c(1)){
 
-  # Fit models to two types of serological data (ELISA/MIA)
+for(chainN in c(1)){ # Run MCMC across single or multiple chains
+
+  for(s.type in serological.data){   # Fit models to two types of serological data (ELISA/MIA)
   
-  for(s.type in serological.data){
-  
-    use.ELISA.data = s.type # Fit to ELISA or MIA data  s.type #
+    use.ELISA.data = s.type # Fit to ELISA or MIA data
     
     # Fit using 4 model types (loop is inside function):
     # 1: SIR model, cases;  2: SIR model, serology and cases;  3: SIR + climate, serology and cases;  4: SIR + climate + control, serology and cases
@@ -66,18 +64,18 @@ source("R/dynamic_model_characteristics.R",local=F)
 
 # Compile the following:
 # Figure 5 - this uses "Figure_5_FALSE3_4.pdf" output
-# Supplementary model figures S7-S9
-# Table 1
+# Table 5 - model parameters
+# Supplementary model outputs: Figures S5-S10, Table S3-4 
 for(p_pick in 1:4){
   plot_posteriors(p_pick)
   plot_figure_2014_dengue3(p_pick,long_time=F,DoubleFit=F)
 }
 
 
-# Table S3 - model comparison
+# Table S6 - model comparison
 model_comparison()
 
-# Figure S3 - illustration
+# Figure S4 - Illustration of parameters
 plot_weather_and_control()
 
 

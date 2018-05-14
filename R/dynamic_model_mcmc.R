@@ -127,9 +127,6 @@ run_transmission_mcmc <- function(MCMC.runs = 10,prop.risk=F){
       
     }
     
-    # Set carrying capacity to mosquito population
-   # theta[["beta_v_mid"]] = thetaAll[1,"npopM"]
-    
     # - - - - - - - - - - - 
     # Specific different model types
     # - - - - - - - - - - -
@@ -161,10 +158,8 @@ run_transmission_mcmc <- function(MCMC.runs = 10,prop.risk=F){
     npcov_init[match(pmaskInit,names(theta_initAll[1,]) )]=0
     cov_matrix_theta_init0 = diag(npcov_init)
     
-    # Quick simulation to check looks OK
-    
+    # Quick simulation to check IC OK
 
-    
     if(length(multichain)==1){
       aa = Sys.time()
       par(mfrow=c(1,1),mar=c(4,4,1,1),mgp=c(2,0.7,0))
@@ -275,10 +270,6 @@ run_transmission_mcmc <- function(MCMC.runs = 10,prop.risk=F){
         xTraceCStar[iiH,(1:length(output1$X_traceC))]=output1$X_traceC
         xTraceAStar[iiH,(1:length(output1$X_traceA))]=output1$X_traceA
       } # end loop over regions
-      
-      # child/adult case ratio - NOT USED IN LIKELIHOOD
-      #c_case_ratioStar = sum(cTraceCStar[2,],na.rm = T) /sum(cTraceStar[2,],na.rm = T)
-      #c_case_ratioTab = if(m>1){sum(c_trace_tabC[m,2,],na.rm = T) /sum(c_trace_tab[m,2,],na.rm = T)}else{c_case_ratioStar}
       
       # Calculate probability function
       output_prob = ComputeProbability(sim_liktab[m],sim_marg_lik_star,thetatab[m,],theta_star,theta_initAlltab[m,,],theta_initAllstar,thetaAllstar[1,],thetaAlltab[m,1,],itertab,c_case_ratioStar,c_case_ratioTab) 

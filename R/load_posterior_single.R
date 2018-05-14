@@ -8,16 +8,18 @@ r_trace_tab0_A=NULL
 x_trace_tab0_C=NULL
 x_trace_tab0_A=NULL
 
+# Load values
 load(paste("outputs/outputR",country.name,"_scenario_",pick_posterior,"_chain_",chainN,"_ELISA_",use.ELISA.data,".RData",sep=""))
-
 thetatab=cbind(data.frame(thetatab),data.frame(thetaAlltab[,iiH,]))
 theta_inittab=data.frame(theta_initAlltab[,iiH,])
 
+# Remove burn-in
 mcmc_samples=length(sim_liktab)
 maxB=sum(sim_liktab!=-Inf)/mcmc_samples
 minB=mcmc.burn*maxB
 picks0=c(round(minB*mcmc_samples):round(maxB*mcmc_samples))
 
+# Compile posteriors
 sim_likOut = sim_liktab[picks0]
 thetatabA=rbind(thetatabA,thetatab[picks0,])
 theta_inittabA=rbind(theta_inittabA,theta_inittab[picks0,])
@@ -32,7 +34,7 @@ x_trace_tab0_A=rbind(x_trace_tab0_A,x_trace_tabA[picks0,iiH,])
 
 picks=c(1:length(thetatabA[,1]))
 
-pick.max = picks[sim_likOut[picks]==max(sim_likOut[picks])][1]
+pick.max = picks[sim_likOut[picks]==max(sim_likOut[picks])][1] # Maximum likelihood
 
 thetatab=thetatabA
 theta_inittab=theta_inittabA

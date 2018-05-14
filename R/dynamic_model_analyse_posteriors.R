@@ -4,15 +4,9 @@
 # github.com/adamkucharski/fiji-denv3-2014
 # - - - - - - - - - - - - - - - - - - - - - - - 
 
-# Need to debug all the reporting functions
-
-
 mcmc.burn=0.2
 
-
 c.text <- function(x,sigF=3){
-
-  
   bp1=signif(c(median(x),quantile(x,0.025),quantile(x,0.975)),sigF)
   paste(bp1[1]," (",bp1[2],"-",bp1[3],")",sep="")
 }
@@ -37,7 +31,6 @@ plot_posteriors<-function( p_pick=4 ){
   source("R/load_posterior_single.R",local=TRUE)
   
   # PLOT HISTOGRAMS
-  
   par(mfrow=c(3,6),mar = c(3,3,1,1),mgp=c(2,0.7,0),las=0)
   
   if(iiH==1){
@@ -218,10 +211,7 @@ plot_weather_and_control <- function(){
   # - - 
   # Plot temperature
   plot(weather.data.daily$date,xaxs="i",weather.data.daily$min_air_temp/2+weather.data.daily$max_air_temp/2,type="l",lty=1,col="orange",xlab="2013/14",ylab="temperature (°C)",lwd=1,ylim=c(21,31),xlim=xRange)
-  #lines(weather.data.daily$date,weather.data.daily$max_air_temp,type="l",lty=1,col="red",lwd=1)
-  
   lines(tt_actualD,seasonaltemp(tt_actualN,theta_fit1))
-  
   title(main=LETTERS[ll],adj=0); ll=ll+1
   
   # - - 

@@ -56,8 +56,6 @@ calculate_r0 <- function(th_in,sus_c=1,sm_c=1,t_vary=1,controlT=1){
   delta_v = mortality_rate_temp(temp_t) *th_in$mu_v
   exp_v = EI_rate_temp(temp_t)*th_in$v_exp
     
-  # par(mfrow=c(2,1)); plot(temp_t); plot(contact_rate)
-  
   # Rate humans get infected -- FORMULATION WITH ONE MOSQUITO POP AND DIFFERENT BITING RATES
   b_hv =  prob_to_h_temp(temp_t) * th_in$m_density * contact_rate * density_vary(temp_t) * rain_scale
   b_hh = 0
@@ -91,14 +89,7 @@ ReportC<-function(ct, theta,repSS,yprop){
   
   if(repSS=="lab"){ mu_output = sapply(yprop*mu01,function(x){rnbinom(1, mu=theta[["repR"]]*x,size=1/theta[["repvol"]] )}) }
   if(repSS=="sus"){ mu_output = sapply((1-yprop)*mu01,function(x){rnbinom(1, mu=theta[["repRA"]]*x,size=1/theta[["repvol"]] )}) }
-  
-  # if(cutt.date<=swap.date){
-  # sapply(mu01,function(x){rnbinom(1, mu=theta[["repR"]]*x,size=1/theta[["repvol"]])})
-  # }else{
-  #   c(sapply(mu01[1:(theta[["rep_drop"]])] ,function(x){rnbinom(1, mu=theta[["repR"]]*x,size=1/theta[["repvol"]])}),rep(-1,exclude.p-1),
-  #     sapply(mu01[(theta[["rep_drop"]]+exclude.p):length(mu01)] ,function(x){rnbinom(1, mu=theta[["repRA"]]*x,size=1/theta[["repvolA"]])})
-  #   )
-  # }
+
   mu_output
 
 }
@@ -109,15 +100,6 @@ ReportC<-function(ct, theta,repSS,yprop){
 LikelihoodFunction<-function(y, c1, c2, theta,iiN,repSS=NULL,yprop){
   
   muAll=sapply(c1,function(x){max(0,x)}) + sapply(c2,function(x){max(0,x)})
-
-  # # Add together early and late fitting:
-  # if(cutt.date<=swap.date){
-  #   sum( dnbinom(y, mu=theta[["repR"]]*muAll,size=1/theta[["repvol"]],log=T) )
-  # }else{
-  #   sum( dnbinom(y[1:(theta[["rep_drop"]])], mu=theta[["repR"]]*muAll[1:(theta[["rep_drop"]])],size=1/theta[["repvol"]],log=T) ) + 
-  #   sum( dnbinom(y[(theta[["rep_drop"]]+exclude.p):length(y)], mu=theta[["repRA"]]*muAll[(theta[["rep_drop"]]+exclude.p):length(y)],size=1/theta[["repvolA"]],log=T) )
-  #   
-  # }
 
   if(repSS=="lab"){ lik_output = ( dnbinom(y, mu=theta[["repR"]]*muAll*yprop,size=1/theta[["repvol"]],log=T) )}
   if(repSS=="sus"){ lik_output = ( dnbinom(y, mu=theta[["repRA"]]*muAll*(1-yprop),size=1/theta[["repvol"]],log=T) )}
@@ -208,9 +190,7 @@ SampleTheta<-function(theta_in, theta_init_in,m,covartheta,covartheta_init,singl
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 ComputeProbability<-function(sim_likelihood,sim_likelihood_star,thetatab,theta_star,thetaItab,theta_Istar,thetaAllstar,thetaAlltab,itertab,c_case_ratioStar,c_case_ratioTab){
-  
-  # sim_likelihood=sim_liktab[m]; sim_likelihood_star=sim_marg_lik_star; thetatab=thetatab[m,]; 
-  
+
   # Include priors - Note have prior on Amplitude now as well
   p_theta_star = priorInf(1/theta_star[["r_inf"]])*priorExp(1/theta_star[["r_exp"]])*priorVEx(1/theta_star[["v_exp"]])*priorMuV(1/theta_star[["mu_v"]])*priorBeta_v(theta_star[["beta_v"]]) *priorDensity(theta_star[["m_density"]]) * priorAtRisk(theta_star[["prop_at_risk"]])
   p_theta = priorInf(1/thetatab[["r_inf"]])*priorExp(1/thetatab[["r_exp"]])*priorVEx(1/thetatab[["v_exp"]])*priorMuV(1/thetatab[["mu_v"]])*priorBeta_v(thetatab[["beta_v"]]) * priorDensity(thetatab[["m_density"]]) * priorAtRisk(thetatab[["prop_at_risk"]])
@@ -229,25 +209,13 @@ sigmd1 <- function(x,x0){as.numeric(x>x0)} #as.numeric(x>x0)
 
 # Seasonality function
 seasonal_f <- function(x,theta){
-  #yy = (1 + theta[["beta_v_mask"]]*theta[["beta_v_amp"]]*sin(((x+date0)/365- season.shift )*2*pi)) 
-  #yy = (1-theta[["temp_balance"]])*seasonaltemp(x,theta_fit1) + theta[["temp_balance"]]*seasonaltemp(x,theta_fit2)
   yy = seasonaltemp(x,theta_fit1) 
   yy
 }
 
 # Carrying capacity:
 carrying_f <- function(x,date0,theta){
-  #yy = (1 + theta[["beta_v_mask"]]*theta[["beta_v_amp"]]*sin(((x+date0)/365- season.shift )*2*pi)) 
-  #yy = theta[["beta_v_mid"]]*(1 + theta[["beta_v_amp"]]*(seasonalrain(x,theta_fitRain)-84)/(220-84))  # Scale between 0 and 1
-  #yy = theta[["beta_v_mid"]]*((seasonalrain(x,theta_fitRain)-84)/(220-84))  # Scale between 0 and 1
-  #yy = yy[yy>0]
-  #yy = 1+theta[["beta_v_amp"]]*(seasonalrain(x,theta_fitRain)-221.2756) # Scale to max value
-  #yy = (1 + theta[["beta_v_amp"]]*(seasonalrain(x,theta_fitRain)-221.2756)/136.7567) # Scale to oscillate around 1
-  
-  #theta[["beta2"]]=1; theta[["beta_v_amp"]]=1;
-  
   yy = 1/(1+1/(0 + theta[["beta_v_amp"]]*seasonalrain(x,theta_fitRain)/222.4374)) # Scale to oscillate around 1 # theta[["beta2"]]
-  
   yy = yy[yy>0]
   yy
 }
@@ -260,14 +228,10 @@ decline_f <- function(x,date0,theta){
   yy
 }
 
-#xx1=0
-#start.date + 365* (control.shift + control.range /( 1 + exp(-10*(xx1-1))) )  # made sure drop after period control starts
-
 Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,y.vals2, y.vals.prop,time.vals,repTab,date_list,plotA=FALSE,simzetaA=NULL,fitplot=FALSE,locationI){
 
   # DEBUG
   # theta=c(theta,thetaAll[iiH,]);  theta_init=theta_initAll[iiH,]; repTab=repTN; locationI=locationtab[iiH] ; sero_lik=1; NN=5
-  
   
   output <- Deterministic_modelR(1,dt,theta, theta_init, y.vals,y.vals2, y.vals.prop, time.vals,repTab,locationI)
 
@@ -279,15 +243,12 @@ Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,y.vals2, y.vals.p
     
     # Reporting model
     xmax = max(min(date_list)+time.vals) 
-    #par(mfrow=c(2,1))
     par(mar = c(4,4,1,3),mfrow=c(2,1))
     mu1=case_count
     case_actual = (y.vals+ y.vals2)
     plot(date_list,case_actual,xlim=c(min(date_list),xmax),pch=19,ylab="cases",ylim=c(0,2000)) #,ylim=c(0,2000) #
-    #points(date_list,y.vals2,ylim=c(0,1000),xlim=c(min(date_list),xmax))
     
     for(kk in 1:NN){
-      #lines(min(date_list)+time.vals-min(time.vals),ReportC(mu1,theta,repSS = "lab",yprop = y.vals.prop),col=rgb(0,0,1,0.5))
       case_out =( ReportC(mu1,theta,repSS = "lab",yprop = y.vals.prop) + ReportC(mu1,theta,repSS = "sus",yprop = y.vals.prop) ) #%>% log()
       case_all =( theta[["repR"]]*mu1 )#%>% log()
       lines(min(date_list)+time.vals-min(time.vals),case_out,col=rgb(0,0.5,1,0.5))
@@ -295,9 +256,6 @@ Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,y.vals2, y.vals.p
       
     }
     polygon(c(as.Date("2014-03-08"),as.Date("2014-03-08"),as.Date("2014-03-22"),as.Date("2014-03-22")),c(-1,1e4,1e4,-1),col=rgb(1,0,0,0.3),lty=0)
-    
-    #lines(c(as.Date("2014-02-15"),as.Date("2014-02-15")),c(-100,100),col=rgb(1,0,0),lty=1)
-    
 
     par(new=TRUE)
 
@@ -332,11 +290,7 @@ Simulate_model2<-function(NN,dt=0.1, theta, theta_init, y.vals,y.vals2, y.vals.p
     
     
   }
-  
-  if(fitplot==T){
-    #mu1=output$C_trace
-    #list(report_traj=ReportC(mu1,theta,repTab))
-  }
+
 
   
 }
@@ -467,10 +421,6 @@ Deterministic_modelR<-function(iiN,dt,theta, theta_init, y.vals, y.vals2, y.vals
   likcasesDLI = LikelihoodFunction(y.vals2,casecountC[1:length(y.vals)],casecountA[1:length(y.vals)], theta,1,repSS="sus",y.vals.prop[1:length(y.vals)])
   
   likelihood = sum(likcasesLab) + sum(likcasesDLI) + liksero1 + liksero2 
-  
-  write.csv(rbind(n_Luminex_C_D3,n_Luminex_A_D3),paste("plots/check_serology",n_Luminex_A_D3[1],".csv",sep=""))
-  
-  #print(likcasesLab)
   
   # Avoid infinity in MCMC loop
   if(likelihood == -Inf | is.na(likelihood)){likelihood=-1e10}
