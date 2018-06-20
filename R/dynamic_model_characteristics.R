@@ -135,4 +135,10 @@ priorAtRisk<-function(x){ifelse(x>0.8,1,0)} # Have strong prior on beta 1+ 0*x}#
 itertab <- c(1); itertabM=c(1) # Iterate over locations in set up and MCMC
 
 
+c(dbinom(30,size=100,prob=0.3,log=T), dbinom(70,size=100,prob=0.7,log=T)) %>% sum()
+
+c(dbinom(10,size=100,prob=0.1,log=T), dbinom(50,size=100,prob=0.5,log=T)) %>% sum()
+
+
+
 

@@ -123,6 +123,7 @@ fit_ELISA <- function(ELISA.fit = T, plot_venn=F){
   
   # - - -
   # Comparison of neutralisation and MIA data
+  countNL = inputs[!is.na(inputs$D3s15),];
   total.NL = length(countNL$PPID2)
 
   # ELISA any DENV in each year
@@ -209,6 +210,11 @@ fit_ELISA <- function(ELISA.fit = T, plot_venn=F){
   
   #- - 
   # Calculate proportion of each Luminex type
+  countEL = inputs; countEL$DconvertM = titre.weights
+  countEL$sero1 = (countEL$ELISA1>=11) %>% as.numeric() # compare cutoff
+  countEL$sero2 = (countEL$ELISA2>=11) %>% as.numeric() # compare cutoff
+  L1_positive = (rowSums(countEL[,c("DENV1P","DENV2P","DENV3P","DENV4P")])>0) %>% as.numeric()
+  L2_positive = (rowSums(countEL[,c("DENV1BP","DENV2BP","DENV3BP","DENV4BP")])>0) %>% as.numeric()
   
   outputLum = rbind( c(inputs$sero1 %>% sum() ,
                        inputs$sero2 %>% sum() ,length(inputs$sero2)),
@@ -228,6 +234,8 @@ fit_ELISA <- function(ELISA.fit = T, plot_venn=F){
   EL.2015 = c(binom.calc(outputLum[1,2],outputLum[1,3]),binom.calc(outputLum[2,2],outputLum[1,3]),binom.calc(outputLum[3,2],outputLum[1,3]),binom.calc(outputLum[4,2],outputLum[1,3]),binom.calc(outputLum[5,2],outputLum[5,3]),binom.calc(outputLum[6,2],outputLum[6,3]))
   
   EL.difference = c(binom.calc(outputLum[1,2]-outputLum[1,1],outputLum[1,3]),binom.calc(outputLum[2,2]-outputLum[2,1],outputLum[1,3]),binom.calc(outputLum[3,2]-outputLum[3,1],outputLum[1,3]),binom.calc(outputLum[4,2]-outputLum[4,1],outputLum[1,3]),binom.calc(outputLum[5,2]-outputLum[5,1],outputLum[5,3]),binom.calc(outputLum[6,2]-outputLum[6,1],outputLum[6,3]))
+  
+  
   
   outputLum=cbind(outputLum,EL.2013,EL.2015,EL.difference
                   )
@@ -398,7 +406,7 @@ fit_ELISA_univariable <- function(inputs){ # use inputs from above fit_ELISA fun
 
 remove_noise <- function(ELISA.fit=T){ # use inputs from above fit_ELISA function
   
-  # Load serology data
+  # Load serology data ELISA.fit=T
   loadinputs = fit_ELISA(ELISA.fit)
   titre.weights = loadinputs$titrechange
   
@@ -556,6 +564,9 @@ remove_noise <- function(ELISA.fit=T){ # use inputs from above fit_ELISA functio
     elisa2d = (inputs$sero2[age.ID]) %>% sum()
     lumd3_1 = as.numeric(inputs$DENV3P[age.ID]) ; ltot = sum(!is.na(lumd3_1)); lumd3_1 = sum(lumd3_1[!is.na(lumd3_1)])
     lumd3_2 = as.numeric(inputs$DENV3BP[age.ID]) ; lumd3_2 = sum(lumd3_2[!is.na(lumd3_2)])
+
+    lumAD_1 = sum((inputs[age.ID,c("DENV3P")]==0)*rowSums(inputs[age.ID,c("DENV1P","DENV2P","DENV4P")])>0)
+    lumAD_2 = sum((inputs[age.ID,c("DENV3BP")]==0)*rowSums(inputs[age.ID,c("DENV1BP","DENV2BP","DENV4BP")])>0)
     
     # Use distributions to calculate
     pick.ages = inputs0[age.ID,"AGE_2015"]
@@ -579,14 +590,14 @@ remove_noise <- function(ELISA.fit=T){ # use inputs from above fit_ELISA functio
       bc3=0
     }
 
-    table.attack = rbind(table.attack,c(age.bins[ii], age.bins[ii+1], n.total, sum(age.ID2013),popn.tot, 1000*casesP.LL/popn.tot, 1000*casesS.LL/popn.tot, n.signl.All/n.total, (n.signl.All-n.signl.Sec)/n.total, n.signl.Sec/n.total, sero.neg2013, sero.convert,elisa1d,elisa2d,lumd3_1,lumd3_2,ltot ))
+    table.attack = rbind(table.attack,c(age.bins[ii], age.bins[ii+1], n.total, sum(age.ID2013),popn.tot, 1000*casesP.LL/popn.tot, 1000*casesS.LL/popn.tot, n.signl.All/n.total, (n.signl.All-n.signl.Sec)/n.total, n.signl.Sec/n.total, sero.neg2013, sero.convert,elisa1d,elisa2d,lumd3_1,lumd3_2,lumAD_1,lumAD_2,ltot ))
     store.attack = rbind(store.attack,c(age.bins[ii], age.bins[ii+1], n.total, bc1,sero.neg2013 ,sero.convert,bc3 ))
 
     age.names = c(age.names,paste(age.bins[ii], (age.bins[ii+1]-1),sep="-"))
   }
   
   table.attack = table.attack %>% data.frame(stringsAsFactors=F)
-  names(table.attack) = c("age1","age2","N","N2013","pop","cases_P","cases_S","All_inf","Inf1","Inf2","seroneg","serocon","ELISA1","ELISA2","D3_1","D3_2","L_tot")
+  names(table.attack) = c("age1","age2","N","N2013","pop","cases_P","cases_S","All_inf","Inf1","Inf2","seroneg","serocon","ELISA1","ELISA2","D3_1","D3_2","DA_1","DA_2","L_tot")
   table.attack0 = table.attack #[table.attack$N>1,]
   
   store.attack = rbind(store.attack,c("Total","Total", sum(table.attack$N),binom.distn.calc(sum(table.attack$Inf1*table.attack$N)/sum(table.attack$N),sum(table.attack$N)),sum(table.attack$seroneg),sum(table.attack$serocon),binom.calc(sum(table.attack$serocon),sum(table.attack$seroneg) )))
