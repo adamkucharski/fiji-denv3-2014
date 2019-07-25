@@ -291,7 +291,7 @@ fit_ELISA_univariable <- function(inputs){ # use inputs from above fit_ELISA fun
   inputsFit01$SEX = as.numeric(inputsFit01$SEX ) # Sex: 1 = Male
   
   modelB.1 <- glm(Dconvert ~ AGE_U_20 , data = inputsFit01,family = "binomial") # Age in 2015
-  modelB.1a <- glm(Dconvert ~ SEX , data = inputsFit01,family = "binomial") # Sex (Female = 1)
+  modelB.1a <- glm(Dconvert ~ SEX , data = inputsFit01,family = "binomial") # Sex (Male = 1)
   modelB.1b <- glm(Dconvert ~ ETHNIC , data = inputsFit01,family = "binomial") # Ethnicity (iTaukei = 1; Other = 0)
   modelB.2 <- glm(Dconvert ~ I_MOS   , data = inputsFit01,family = "binomial") # Presence of mosquitoes
   modelB.3 <- glm(Dconvert ~ I_TIR    , data = inputsFit01,family = "binomial") # Presence of used car tires

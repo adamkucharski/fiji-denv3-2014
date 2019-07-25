@@ -58,7 +58,7 @@ for(chainN in c(1)){ # Run MCMC across single or multiple chains
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 # Load relevant data
-use.ELISA.data = T # Fit to ELISA or MIA data
+use.ELISA.data = F # Fit to ELISA or MIA data
 chainN = 1 # pick MCMC chain
 source("R/dynamic_model_characteristics.R",local=F)
 

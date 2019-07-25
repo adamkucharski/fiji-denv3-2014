@@ -659,7 +659,14 @@ plot_figure_2014_dengue3 <- function(p_pick=4,simM=FALSE,Fmask=FALSE,long_time=F
   lines(date_listSeason,plotR0_both[1,],type="l",col=rgb(0,0,0),xlab="",ylab="")
 
   title(main=LETTERS[3],adj=0)
-
+  
+  
+  storeN = cbind(date_listSeason,plotR0_both[1,],plotRR_both[1,])
+  colnames(storeN) = c("date","R0","R")
+  storeN = data.frame(storeN)
+  storeN[,1] = as.Date(storeN[,1],origin="1970-01-01")
+  write.csv(storeN,"storeN.csv")
+  
   # - - 
   # Plot weather patterns
   
