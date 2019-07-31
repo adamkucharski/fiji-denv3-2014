@@ -15,4 +15,4 @@ This repository contains code to accompany analysis of the 2013/14 Fiji dengue o
 
 ### Reference:
 
-Kucharski AJ, Kama M, Watson CH et al. (2018) [Using paired serology and surveillance data to quantify dengue transmission and control during a large outbreak in Fiji](https://www.biorxiv.org/content/early/2018/01/10/246116). BioRxiv
+Kucharski AJ, Kama M, Watson CH et al. (2018) [Using paired serology and surveillance data to quantify dengue transmission and control during a large outbreak in Fiji](https://elifesciences.org/articles/34848). eLife
